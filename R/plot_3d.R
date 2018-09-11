@@ -71,10 +71,20 @@ plot_3d = function(hillshade, heightmap, zscale=1,
       }
     }
   }
-  flipud = function(x) {
-    x[,ncol(x):1]
+  if(any(hillshade > 1 || hillshade < 0)) {
+    stop("Argument `hillshade` must not contain any entries less than 0 or more than 1")
   }
-  heightmap = flipud(heightmap)
+  flipud = function(x) {
+    x[nrow(x):1,]
+  }
+  if(class(hillshade) == "array") {
+    hillshade[,,1] = flipud(hillshade[,,1])
+    hillshade[,,2] = flipud(hillshade[,,2])
+    hillshade[,,3] = flipud(hillshade[,,3])
+  }
+  if(class(hillshade) == "matrix") {
+    hillshade = hillshade[,ncol(hillshade):1]
+  }
   if(is.null(heightmap)) {
     stop("heightmap argument missing--need to input both hillshade and original elevation matrix")
   }
@@ -122,16 +132,8 @@ plot_3d = function(hillshade, heightmap, zscale=1,
     }
   }
   tempmap = tempfile()
-  write_png(hillshade,tempmap)
-  rgl.surface(1:nrow(heightmap),1:ncol(heightmap),heightmap[,ncol(heightmap):1]/zscale,texture=paste0(tempmap,".png"),lit=FALSE)
-  if(water) {
-    rgl.surface(c(1,nrow(heightmap)),c(1,ncol(heightmap)),matrix(waterdepth,2,2),color=watercolor,lit=FALSE,alpha=wateralpha)
-    make_water(heightmap/zscale,waterheight=waterdepth,wateralpha=wateralpha,watercolor=watercolor)
-  }
-  if(!is.null(waterlinecolor) && water) {
-    make_lines(heightmap,basedepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,linewidth = linewidth,alpha=waterlinealpha)
-    make_waterlines(heightmap,waterdepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,alpha=waterlinealpha,lwd=linewidth)
-  }
+  save_png(hillshade,tempmap)
+  rgl.surface(1:nrow(heightmap),-(1:ncol(heightmap)),heightmap[,ncol(heightmap):1]/zscale,texture=paste0(tempmap,".png"),lit=FALSE)
   rgl.bg(color=background)
   rgl.viewpoint(zoom=zoom,phi=phi,theta=theta,fov=fov)
   par3d("windowRect" = c(0,0,windowsize), ...)
@@ -139,7 +141,15 @@ plot_3d = function(hillshade, heightmap, zscale=1,
     make_base(heightmap,basedepth=soliddepth,basecolor=solidcolor,zscale=zscale)
   }
   if(!is.null(solidlinecolor) && solid) {
-    make_lines(heightmap,basedepth=soliddepth,linecolor=solidlinecolor,zscale=zscale)
+    make_lines(heightmap,basedepth=soliddepth,linecolor=solidlinecolor,zscale=zscale,linewidth = linewidth)
+  }
+  if(water) {
+    rgl.surface(c(1,nrow(heightmap)),c(-1,-ncol(heightmap)),matrix(waterdepth,2,2),color=watercolor,lit=FALSE,alpha=wateralpha)
+    make_water(heightmap/zscale,waterheight=waterdepth,wateralpha=wateralpha,watercolor=watercolor)
+  }
+  if(!is.null(waterlinecolor) && water) {
+    make_lines(heightmap,basedepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,linewidth = linewidth,alpha=waterlinealpha,solid=FALSE)
+    make_waterlines(heightmap,waterdepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,alpha=waterlinealpha,lwd=linewidth)
   }
   if(shadow) {
     make_shadow(nrow(heightmap),  ncol(heightmap), shadowdepth, shadowwidth, background, shadowcolor)
