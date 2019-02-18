@@ -10,38 +10,18 @@
 #'@keywords internal
 make_base = function(heightmap,basedepth=0,basecolor="grey20",zscale=1) {
   heightmap = heightmap[,ncol(heightmap):1]/zscale
-  heightmap1 = heightmap[1,]
-  heightmap2 = heightmap[,1]
-  heightmap3 = heightmap[nrow(heightmap),]
-  heightmap4 = heightmap[,ncol(heightmap)]
-  heightlist1 = list()
-  heightlist2 = list()
-  heightlist3 = list()
-  heightlist4 = list()
-  heightlist5 = list()
-  for(i in 1:(length(heightmap1)-1)) {
-    heightlist1[[i]] = matrix(c(1,1,1, heightmap1[i],basedepth,basedepth, -i,-i,-i-1),3,3)[c(1,3,2),]
-    heightlist1[[i+length(heightmap1)]] = matrix(c(1,1,1, heightmap1[i],basedepth,heightmap1[i+1], -i,-i-1,-i-1),3,3)[c(1,3,2),]
+  na_matrix = is.na(heightmap)
+  heightlist = make_base_cpp(heightmap, na_matrix, basedepth)
+  if(all(!is.na(heightmap))) {
+    heightlist[[length(heightlist)+1]] = matrix(c(1,nrow(heightmap),nrow(heightmap), basedepth,basedepth,basedepth,-1,-ncol(heightmap),-1),3,3)
+    heightlist[[length(heightlist)+2]] = matrix(c(1,nrow(heightmap),1,basedepth,basedepth,basedepth,-ncol(heightmap),-ncol(heightmap),-1),3,3)
+    fullsides = do.call(rbind,heightlist)
+    rgl::triangles3d(fullsides,lit=FALSE,color=basecolor,front="filled",back="filled",ambient = "#000002")
+  } else {
+    fullsides = do.call(rbind,heightlist)
+    basemat = matrix(basedepth,nrow(heightmap),ncol(heightmap))
+    basemat[is.na(heightmap)] = NA
+    rgl.surface(1:nrow(basemat),-(1:ncol(basemat)),basemat,color=basecolor,lit=FALSE,back="filled",front="filled",ambient = "#000002")
+    rgl::triangles3d(fullsides,lit=FALSE,color=basecolor,front="filled",back="filled",ambient = "#000002")
   }
-  heightmat1 = do.call(rbind,heightlist1)
-  for(i in 1:(length(heightmap2)-1)) {
-    heightlist2[[i]] = matrix(c(i,i+1,i,  heightmap2[i],basedepth,basedepth, -1,-1,-1),3,3)[c(1,3,2),]
-    heightlist2[[i+length(heightmap2)]] = matrix(c(i,i+1,i+1,  heightmap2[i],heightmap2[i+1],basedepth, -1,-1,-1),3,3)[c(1,3,2),]
-  }
-  heightmat2 = do.call(rbind,heightlist2)
-  for(i in 1:(length(heightmap3)-1)) {
-    heightlist3[[i]] = matrix(c(nrow(heightmap),nrow(heightmap),nrow(heightmap),  heightmap3[i],basedepth,basedepth, -i,-i-1,-i),3,3)[c(1,3,2),]
-    heightlist3[[i+length(heightmap3)]] = matrix(c(nrow(heightmap),nrow(heightmap),nrow(heightmap),  heightmap3[i],heightmap3[i+1],basedepth, -i,-i-1,-i-1),3,3)[c(1,3,2),]
-  }
-  heightmat3 = do.call(rbind,heightlist3)
-  for(i in 1:(length(heightmap4)-1)) {
-    heightlist4[[i]] = matrix(c(i,i,i+1, heightmap4[i],basedepth,basedepth, -ncol(-heightmap),-ncol(heightmap),-ncol(heightmap)),3,3)[c(1,3,2),]
-    heightlist4[[i+length(heightmap4)]] = matrix(c(i,i+1,i+1, heightmap4[i],basedepth,heightmap4[i+1], -ncol(heightmap),-ncol(heightmap),-ncol(heightmap)),3,3)[c(1,3,2),]
-  }
-  heightmat4 = do.call(rbind,heightlist4)
-  heightlist5[[1]] =  matrix(c(1,nrow(heightmap),nrow(heightmap),basedepth,basedepth,basedepth,-1,-1,-ncol(heightmap)),3,3)[c(1,3,2),]
-  heightlist5[[2]] =   matrix(c(1,1,nrow(heightmap),basedepth,basedepth,basedepth,-ncol(heightmap),-1,-ncol(heightmap)),3,3)[c(1,3,2),]
-  heightmat5 = do.call(rbind,heightlist5)
-  fullsides = rbind(heightmat1,heightmat2,heightmat3,heightmat4,heightmat5)
-  rgl::triangles3d(fullsides,lit=FALSE,color=basecolor,front="fill",back="culled")
 }

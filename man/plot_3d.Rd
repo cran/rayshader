@@ -2,16 +2,16 @@
 % Please edit documentation in R/plot_3d.R
 \name{plot_3d}
 \alias{plot_3d}
-\title{plot_3d}
+\title{Plot 3D}
 \usage{
-plot_3d(hillshade, heightmap, zscale = 1, solid = TRUE,
-  soliddepth = "auto", solidcolor = "grey20",
-  solidlinecolor = "grey40", shadow = TRUE, shadowdepth = "auto",
+plot_3d(hillshade, heightmap, zscale = 1, baseshape = "rectangle",
+  solid = TRUE, soliddepth = "auto", solidcolor = "grey20",
+  solidlinecolor = "grey30", shadow = TRUE, shadowdepth = "auto",
   shadowcolor = "grey50", shadowwidth = "auto", water = FALSE,
   waterdepth = 0, watercolor = "lightblue", wateralpha = 0.5,
   waterlinecolor = NULL, waterlinealpha = 1, linewidth = 2,
-  theta = 45, phi = 45, fov = 0, zoom = 1, background = "white",
-  windowsize = c(600, 600), ...)
+  lineantialias = FALSE, theta = 45, phi = 45, fov = 0, zoom = 1,
+  background = "white", windowsize = 600, ...)
 }
 \arguments{
 \item{hillshade}{Hillshade/image to be added to 3D surface map.}
@@ -21,13 +21,15 @@ plot_3d(hillshade, heightmap, zscale = 1, solid = TRUE,
 \item{zscale}{Default `1`. The ratio between the x and y spacing (which are assumed to be equal) and the z axis. For example, if the elevation levels are in units
 of 1 meter and the grid values are separated by 10 meters, `zscale` would be 10. Adjust the zscale down to exaggerate elevation features.}
 
+\item{baseshape}{Default `rectangle`. Shape of the base. Options are c("rectangle","circle","hex").}
+
 \item{solid}{Default `TRUE`. If `FALSE`, just the surface is rendered.}
 
 \item{soliddepth}{Default `auto`, which sets it to the lowest elevation in the matrix minus one unit (scaled by zscale). Depth of the solid base.}
 
 \item{solidcolor}{Default `grey20`. Base color.}
 
-\item{solidlinecolor}{Default `grey40`. Base edge line color.}
+\item{solidlinecolor}{Default `grey30`. Base edge line color.}
 
 \item{shadow}{Default `TRUE`. If `FALSE`, no shadow is rendered.}
 
@@ -51,6 +53,8 @@ of 1 meter and the grid values are separated by 10 meters, `zscale` would be 10.
 
 \item{linewidth}{Default `2`. Width of the edge lines in the scene.}
 
+\item{lineantialias}{Default `FALSE`. Whether to anti-alias the lines in the scene.}
+
 \item{theta}{Default `45`. Rotation around z-axis.}
 
 \item{phi}{Default `45`. Azimuth angle.}
@@ -61,7 +65,13 @@ of 1 meter and the grid values are separated by 10 meters, `zscale` would be 10.
 
 \item{background}{Default `grey10`. Color of the background.}
 
-\item{windowsize}{Default `c(600,600)`. Width and height of the `rgl` device displaying the plot.}
+\item{windowsize}{Default `600`. Position, width, and height of the `rgl` device displaying the plot. 
+If a single number, viewport will be a square and located in upper left corner. 
+If two numbers, (e.g. `c(600,800)`), user will specify width and height separately. 
+If four numbers (e.g. `c(200,0,600,800)`), the first two coordinates 
+specify the location of the x-y coordinates of the bottom-left corner of the viewport on the screen,
+and the next two (or one, if square) specify the window size. NOTE: The absolute positioning of the
+window does not currently work on macOS (tested on Mojave), but the size can still be specified.}
 
 \item{...}{Additional arguments to pass to the `rgl::par3d` function.}
 }
@@ -74,6 +84,7 @@ Displays the shaded map in 3D with the `rgl` package.
 montereybay \%>\%
  sphere_shade(texture="desert") \%>\%
  plot_3d(montereybay,zscale=50)
+render_snapshot()
 }
 
 #With a water layer  
@@ -82,5 +93,44 @@ montereybay \%>\%
  sphere_shade(texture="imhof2") \%>\%
  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2", 
          waterlinecolor="white", waterlinealpha=0.5)
+render_snapshot()
+rgl::rgl.clear()
+}
+
+#We can also change the base by setting "baseshape" to "hex" or "circle"
+\donttest{
+montereybay \%>\%
+ sphere_shade(texture="imhof1") \%>\%
+ plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
+         waterlinecolor="white", waterlinealpha=0.5,baseshape="circle")
+render_snapshot()
+rgl::rgl.clear()
+}
+
+\donttest{
+montereybay \%>\%
+ sphere_shade(texture="imhof1") \%>\%
+ plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
+         waterlinecolor="white", waterlinealpha=0.5,baseshape="hex")
+render_snapshot()
+rgl::rgl.clear()
+}
+
+#Or we can carve out the region of interest ourselves, by setting those entries to NA
+#to the elevation map passed into `plot_3d`
+
+#Here, we only include the deep bathymetry data by setting all points greater than -10
+#in the copied elevation matrix to NA.
+
+mb_water = montereybay
+mb_water[mb_water > -10] = NA
+
+\donttest{
+montereybay \%>\%
+ sphere_shade(texture="imhof1") \%>\%
+ plot_3d(mb_water, zscale=50, water = TRUE, watercolor="imhof1", theta=-45,
+         waterlinecolor="white", waterlinealpha=0.5)
+render_snapshot()
+rgl::rgl.clear()
 }
 }

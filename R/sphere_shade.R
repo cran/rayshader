@@ -1,8 +1,8 @@
-#'@title sphere_shade
+#'@title Calculate Surface Color Map
 #'
-#'@description Calculates local shadow map for a elevation matrix by calculating the dot 
-#'product between light direction and the surface normal vector at that point. Each point's
-#'intensity is proportional to the cosine of the normal ve
+#'@description Calculates a color for each point on the surface using the surface normals and
+#' hemispherical UV mapping. This uses either a texture map provided by the user (as an RGB array),
+#' or a built-in color texture.
 #'
 #'@param heightmap A two-dimensional matrix, where each entry in the matrix is the elevation at that point. All points are assumed to be evenly spaced.
 #'@param sunangle Default `315` (NW). The direction of the main highlight color (derived from the built-in palettes or the `create_texture` function).
@@ -10,12 +10,30 @@
 #'of the built-in palettes (`imhof1`,`imhof2`,`imhof3`,`imhof4`,`desert`, `bw`, and `unicorn`). 
 #'@param normalvectors Default `NULL`. Cache of the normal vectors (from `calculate_normal` function). Supply this to speed up texture mapping.
 #'@param zscale Default `1`. The ratio between the x and y spacing (which are assumed to be equal) and the z axis. 
-#'@param progbar Default `TRUE`. If `FALSE`, turns off progress bar.
+#'@param progbar Default `TRUE` if interactive, `FALSE` otherwise. If `FALSE`, turns off progress bar.
 #'@return RGB array of hillshaded texture mappings.
 #'@export
 #'@examples
-#'plot_map(sphere_shade(volcano,texture="desert"))
-sphere_shade = function(heightmap, sunangle=315, texture="imhof1", normalvectors = NULL, zscale=1, progbar = TRUE) {
+#'montereybay %>%
+#'  sphere_shade() %>%
+#'  plot_map()
+#'  
+#'#Change to a built-in color texture:
+#'montereybay %>%
+#'  sphere_shade(texture="desert") %>%
+#'  plot_map()
+#'
+#'#Change the highlight angle:
+#'montereybay %>%
+#'  sphere_shade(texture="desert", sunangle = 45) %>%
+#'  plot_map()
+#'
+#'#Create our own texture using the `create_texture` function:
+#'montereybay %>%
+#'  sphere_shade(texture=create_texture("springgreen","darkgreen",
+#'                                      "turquoise","steelblue3","white")) %>%
+#'  plot_map()
+sphere_shade = function(heightmap, sunangle=315, texture="imhof1", normalvectors = NULL, zscale=1, progbar = interactive()) {
   sunangle = sunangle/180*pi
   flipud = function(x) {
     x[,ncol(x):1]

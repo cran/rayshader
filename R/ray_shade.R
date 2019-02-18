@@ -1,6 +1,6 @@
-#'@title Rayshade
+#'@title Calculate Raytraced Shadow Map
 #'
-#'@description Calculates global shadow map for a elevation matrix by propogating rays from each matrix point to the light source(s),
+#'@description Calculates shadow map for a elevation matrix by propogating rays from each matrix point to the light source(s),
 #' lowering the brightness at each point for each ray that intersects the surface.
 #'
 #'@param heightmap A two-dimensional matrix, where each entry in the matrix is the elevation at that point. All points are assumed to be evenly spaced.
@@ -17,7 +17,7 @@
 #'@param cache_mask Default `NULL`. A matrix of 1 and 0s, indicating which points on which the raytracer will operate.
 #'@param shadow_cache Default `NULL`. The shadow matrix to be updated at the points defined by the argument `cache_mask`.
 #'If present, this will only compute the raytraced shadows for those points with value `1` in the mask.
-#'@param progbar Default `TRUE`. If `FALSE`, turns off progress bar.
+#'@param progbar Default `TRUE` if interactive, `FALSE` otherwise. If `FALSE`, turns off progress bar.
 #'@param ... Additional arguments to pass to the `makeCluster` function when `multicore=TRUE`.
 #'@import foreach doParallel parallel progress
 #'@return Matrix of light intensities at each point.
@@ -36,7 +36,7 @@
 #'    
 #'plot_map(volcanoshadow)
 ray_shade = function(heightmap, anglebreaks=seq(40,50,1), sunangle=315, maxsearch=100, lambert=TRUE, zscale=1, 
-                    multicore = FALSE, cache_mask = NULL, shadow_cache=NULL, progbar=TRUE, ...) {
+                    multicore = FALSE, cache_mask = NULL, shadow_cache=NULL, progbar=interactive(), ...) {
   anglebreaks = anglebreaks[order(anglebreaks)]
   anglebreaks_rad = anglebreaks*pi/180
   sunangle_rad = sunangle*pi/180
@@ -60,8 +60,8 @@ ray_shade = function(heightmap, anglebreaks=seq(40,50,1), sunangle=315, maxsearc
     cache_mask = cache_mask[c(-1,-nrow(cache_mask)),c(-1,-ncol(cache_mask))]
     shadowmatrix[shadowmatrix<0] = 0
     if(lambert) {
-      shadowmatrix = add_shadow(shadowmatrix, lamb_shade(originalheightmap, rayangle = mean(anglebreaks), 
-                                                         sunangle = sunangle, zscale = zscale), 0)
+      shadowmatrix = shadowmatrix * lamb_shade(originalheightmap, rayangle = mean(anglebreaks), 
+                                                         sunangle = sunangle, zscale = zscale)
     }
     if(!is.null(shadow_cache)) {
       shadow_cache[cache_mask == 1] = shadowmatrix[cache_mask == 1]
@@ -74,26 +74,44 @@ ray_shade = function(heightmap, anglebreaks=seq(40,50,1), sunangle=315, maxsearc
     } else {
       numbercores = options("cores")[[1]]
     }
+    if(nrow(heightmap) < numbercores*16) {
+      if(nrow(heightmap) < 4) {
+        chunksize = 1
+      }
+      chunksize = 4
+    } else {
+      chunksize = 16
+    }
+    if(nrow(heightmap) %% chunksize == 0) {
+      number_multicore_iterations = nrow(heightmap)/chunksize
+    } else {
+      number_multicore_iterations = floor(nrow(heightmap)/chunksize) + 1
+    }
+    itervec = rep(1,number_multicore_iterations)
+    for(i in 0:number_multicore_iterations) {
+      itervec[i+1] = 1 + i*chunksize
+    }
+    itervec[length(itervec)] = nrow(heightmap) + 1
     cl = parallel::makeCluster(numbercores, ...)
     doParallel::registerDoParallel(cl, cores = numbercores)
     shadowmatrixlist = tryCatch({
-      foreach::foreach(i=1:nrow(heightmap),.export = c("rayshade_multicore")) %dopar% {
+      foreach::foreach(i=1:(length(itervec)-1),.export = c("rayshade_multicore")) %dopar% {
         rayshade_multicore(sunangle = sunangle_rad, anglebreaks = anglebreaks_rad, 
-                           heightmap = flipud(heightmap), zscale = zscale, 
-                           maxsearch = maxsearch, row = i-1, cache_mask = cache_mask[i,])
+                           heightmap = flipud(heightmap), zscale = zscale, chunkindices = c(itervec[i],(itervec[i+1])),
+                           maxsearch = maxsearch, cache_mask = cache_mask)
       }
     }, finally = {
       tryCatch({
         parallel::stopCluster(cl)
-      }, error = function (e) {})
+      }, error = function (e) {print(e)})
     })
     shadowmatrix = do.call(rbind,shadowmatrixlist) 
     shadowmatrix[shadowmatrix<0] = 0
     shadowmatrix = shadowmatrix[c(-1,-nrow(shadowmatrix)),c(-1,-ncol(shadowmatrix))]
     cache_mask = cache_mask[c(-1,-nrow(cache_mask)),c(-1,-ncol(cache_mask))]
     if(lambert) {
-      shadowmatrix = add_shadow(shadowmatrix, lamb_shade(originalheightmap, rayangle = mean(anglebreaks), 
-                                              sunangle = sunangle, zscale = zscale), 0)
+      shadowmatrix = shadowmatrix * lamb_shade(originalheightmap, rayangle = mean(anglebreaks), 
+                                              sunangle = sunangle, zscale = zscale)
     }
     if(!is.null(shadow_cache)) {
       shadow_cache[cache_mask == 1] = shadowmatrix[cache_mask == 1]
