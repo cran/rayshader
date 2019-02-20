@@ -1,4 +1,4 @@
-182c0e0618b121275d2ae50f69dc83d1 *DESCRIPTION
+c3266a29ad26bb367dca2f27a5a660a4 *DESCRIPTION
 b5c27385332c9d2e7e4281f9e022fa70 *NAMESPACE
 339eabfc9699bd1d50a04d5ff1fa33b3 *NEWS
 8463ed788d2e4d0685b7830a414b9b1f *NEWS.md
@@ -72,6 +72,6 @@ b39722ff87965ba19d0a1facd262edd2 *man/sphere_shade.Rd
 6d368937602be18e39812710caa92a08 *src/interpolate_color.cpp
 67bb8831bc8f244052fe6f7cd42e6bf1 *src/lambshade.cpp
 0632af450def1cdb5d574dc1b574cd09 *src/make_base_cpp.cpp
-605eaf95ec97db10b877fe7612950249 *src/pointspread.cpp
+66150e80c9003d03904b59e3edf6710c *src/pointspread.cpp
 f24c1a7296ed27fbc2201e046992a5b7 *src/rayshade.cpp
 1d329bfaa3ba6f6ede535d2e89a199bd *src/rayshade_multicore.cpp
