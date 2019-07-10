@@ -4,16 +4,16 @@
 \alias{render_camera}
 \title{Render Camera}
 \usage{
-render_camera(theta = 45, phi = 45, zoom = 1, fov = 0)
+render_camera(theta = 45, phi = 45, zoom = NULL, fov = NULL)
 }
 \arguments{
 \item{theta}{Default `45`. Rotation angle.}
 
 \item{phi}{Default `45`. Azimuth angle. Maximum `90`.}
 
-\item{zoom}{Default `1`. Positive value indicating camera magnification.}
+\item{zoom}{Defaults to current value. Positive value indicating camera magnification.}
 
-\item{fov}{Default `0`. Field of view of the camera. Maximum `180`.}
+\item{fov}{Defaults to current value. Field of view of the camera. Maximum `180`.}
 }
 \description{
 Changes the position and properties of the camera around the scene. Wrapper around \link[rgl]{rgl.viewpoint}.
@@ -22,7 +22,7 @@ Changes the position and properties of the camera around the scene. Wrapper arou
 \dontrun{
 montereybay \%>\%
  sphere_shade() \%>\%
- plot_3d(montereybay,zscale=50)
+ plot_3d(montereybay,zscale = 50)
 render_snapshot()
 }
 
@@ -34,19 +34,19 @@ render_snapshot()
 
 #Shift to an overhead view
 \dontrun{
-render_camera(theta = 0, phi = 90,zoom=0.7)
+render_camera(theta = 0, phi = 90,zoom = 0.7)
 render_snapshot()
 }
 
 #Shift to an front view
 \dontrun{
-render_camera(theta = -90, phi = 30,zoom=0.5)
+render_camera(theta = -90, phi = 30,zoom = 0.5)
 render_snapshot()
 }
 
 #Change the FOV
 \dontrun{
-render_camera(theta = -90, phi = 30,zoom=0.5,fov=130)
+render_camera(theta = -90, phi = 30,zoom = 0.5,fov = 130)
 render_snapshot()
 rgl::rgl.close()
 }
@@ -55,7 +55,7 @@ rgl::rgl.close()
 \dontrun{
 montereybay \%>\%
  sphere_shade() \%>\%
- plot_3d(montereybay,zscale=50)
+ plot_3d(montereybay,zscale = 50)
 
 phivec = 20 + 70 * 1/(1 + exp(seq(-5, 10, length.out = 180)))
 phivecfull = c(phivec, rev(phivec))

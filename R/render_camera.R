@@ -4,14 +4,14 @@
 #'
 #'@param theta Default `45`. Rotation angle.
 #'@param phi Default `45`. Azimuth angle. Maximum `90`.
-#'@param zoom Default `1`. Positive value indicating camera magnification.
-#'@param fov Default `0`. Field of view of the camera. Maximum `180`.
+#'@param zoom Defaults to current value. Positive value indicating camera magnification.
+#'@param fov Defaults to current value. Field of view of the camera. Maximum `180`.
 #'@export
 #'@examples
 #'\dontrun{
 #'montereybay %>%
 #'  sphere_shade() %>%
-#'  plot_3d(montereybay,zscale=50)
+#'  plot_3d(montereybay,zscale = 50)
 #'render_snapshot()
 #'}
 #'
@@ -23,19 +23,19 @@
 #'
 #'#Shift to an overhead view
 #'\dontrun{
-#'render_camera(theta = 0, phi = 90,zoom=0.7)
+#'render_camera(theta = 0, phi = 90,zoom = 0.7)
 #'render_snapshot()
 #'}
 #'
 #'#Shift to an front view
 #'\dontrun{
-#'render_camera(theta = -90, phi = 30,zoom=0.5)
+#'render_camera(theta = -90, phi = 30,zoom = 0.5)
 #'render_snapshot()
 #'}
 #'
 #'#Change the FOV
 #'\dontrun{
-#'render_camera(theta = -90, phi = 30,zoom=0.5,fov=130)
+#'render_camera(theta = -90, phi = 30,zoom = 0.5,fov = 130)
 #'render_snapshot()
 #'rgl::rgl.close()
 #'}
@@ -44,7 +44,7 @@
 #'\dontrun{
 #'montereybay %>%
 #'  sphere_shade() %>%
-#'  plot_3d(montereybay,zscale=50)
+#'  plot_3d(montereybay,zscale = 50)
 #'
 #'phivec = 20 + 70 * 1/(1 + exp(seq(-5, 10, length.out = 180)))
 #'phivecfull = c(phivec, rev(phivec))
@@ -63,6 +63,12 @@
 #'#And run this command to convert the video to post to the web:
 #'#ffmpeg -i raymovie.mp4 -pix_fmt yuv420p -profile:v baseline -level 3 -vf scale=-2:-2 rayweb.mp4
 #'}
-render_camera = function(theta = 45, phi = 45, zoom = 1, fov = 0) {
-  rgl::rgl.viewpoint( theta = theta, phi = phi, fov = fov, zoom = zoom)
+render_camera = function(theta = 45, phi = 45, zoom = NULL, fov = NULL) {
+  if(is.null(fov)) {
+    fov = rgl::par3d()$FOV
+  }
+  if(is.null(zoom)) {
+    zoom = rgl::par3d()$zoom
+  }
+  rgl::rgl.viewpoint(theta = theta, phi = phi, fov = fov, zoom = zoom)
 }
