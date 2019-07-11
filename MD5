@@ -1,4 +1,4 @@
-eaedf96a489b0b7ad2ff4cf4e80d3fa1 *DESCRIPTION
+3953d446695b4d3cac9c0d68f6d24abf *DESCRIPTION
 548ff14ae8c47f291a4f36021ea8ae24 *NAMESPACE
 339eabfc9699bd1d50a04d5ff1fa33b3 *NEWS
 8463ed788d2e4d0685b7830a414b9b1f *NEWS.md
@@ -30,7 +30,7 @@ cf57e3720eb9dbdb663ac8f607098c53 *R/rayshaderRcpp.R
 e895bd01ca6b1a549b57d275b7b55d99 *R/render_camera.R
 03ff9e275b44d6640cead2449aaf397b *R/render_depth.R
 1188b27eaaaab5c481cff3bf616aa015 *R/render_label.R
-4878d58507097b06a5def6847f0ecd1f *R/render_movie.R
+a8cff89a5bdbc1166f50eebf100d4cab *R/render_movie.R
 04bfb615006f843113fe6a469c10c516 *R/render_snapshot.R
 6c33fbe3d4f8376782494983f87aed5e *R/render_water.R
 10430fdabdf002feda1ce3778088ab26 *R/save_3dprint.R
