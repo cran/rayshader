@@ -5,7 +5,11 @@
 \title{Render Movie}
 \usage{
 render_movie(filename, type = "orbit", frames = 360, fps = 30,
-  phi = 30, theta = 0, zoom = NULL, fov = NULL, ...)
+  phi = 30, theta = 0, zoom = NULL, fov = NULL,
+  title_text = NULL, title_offset = c(20, 20), title_color = "black",
+  title_size = 30, title_font = "sans", title_bar_color = NULL,
+  title_bar_alpha = 0.5, image_overlay = NULL, vignette = FALSE,
+  audio = NULL, progbar = interactive(), ...)
 }
 \arguments{
 \item{filename}{Filename. If not appended with `.mp4`, it will be appended automatically.}
@@ -18,15 +22,44 @@ Other options are `oscillate` (sine wave around `theta` value, covering 90 degre
 
 \item{fps}{Default `30`. Frames per second. Recommmend either 30 or 60 for web.}
 
-\item{phi}{Default `30`. Azimuth values, in degrees.}
+\item{phi}{Defaults to current view. Azimuth values, in degrees.}
 
-\item{theta}{Default `0`. Theta values, in degrees.}
+\item{theta}{Default to current view. Theta values, in degrees.}
 
 \item{zoom}{Defaults to the current view. Zoom value, between `0` and `1`.}
 
 \item{fov}{Defaults to the current view. Field of view values, in degrees.}
 
-\item{...}{Additional parameters to pass to av::av_capture_graphics}
+\item{title_text}{Default `NULL`. Text. Adds a title to the movie, using magick::image_annotate.}
+
+\item{title_offset}{Default `c(20,20)`. Distance from the top-left (default, `gravity` direction in 
+image_annotate) corner to offset the title.}
+
+\item{title_color}{Default `black`. Font color.}
+
+\item{title_size}{Default `30`. Font size in pixels.}
+
+\item{title_font}{Default `sans`. String with font family such as "sans", "mono", "serif", "Times", "Helvetica", 
+"Trebuchet", "Georgia", "Palatino" or "Comic Sans".}
+
+\item{title_bar_color}{Default `NULL`. If a color, this will create a colored bar under the title.}
+
+\item{title_bar_alpha}{Default `0.5`. Transparency of the title bar.}
+
+\item{image_overlay}{Default `NULL`. Either a string indicating the location of a png image to overlay
+over the whole movie (transparency included), or a 4-layer RGBA array. This image will be resized to the 
+dimension of the movie if it does not match exactly.}
+
+\item{vignette}{Default `FALSE`. If `TRUE` or numeric, a camera vignetting effect will be added to the image.
+`1` is the darkest vignetting, while `0` is no vignetting. If vignette is a length-2 vector, the second entry will
+control the blurriness of the vignette effect.}
+
+\item{audio}{Default `NULL`. Optional file with audio to add to the video.}
+
+\item{progbar}{Default `TRUE` if interactive, `FALSE` otherwise. If `FALSE`, turns off progress bar. 
+Will display a progress bar when adding an overlay or title.}
+
+\item{...}{Additional parameters to pass to magick::image_annotate.}
 }
 \description{
 Renders a movie using the \pkg{av} package. Moves the camera around a 3D visualization 
@@ -48,6 +81,7 @@ montereybay \%>\%
 filename_movie = tempfile()
 
 #You can change to an oscillating orbit. The magnification is increased and azimuth angle set to 30.
+#A title has also been added using the title_text argument.
 \donttest{
 montereybay \%>\%
  sphere_shade(texture="imhof1") \%>\%
@@ -55,7 +89,8 @@ montereybay \%>\%
          waterlinecolor="white", waterlinealpha=0.5)
 #Un-comment the following to run:
 #render_movie(filename = filename_movie, type = "oscillate", 
-#             frames = 60,  phi = 30, zoom = 0.8, theta = -90)
+#             frames = 60,  phi = 30, zoom = 0.8, theta = -90,
+#             title_text = "Monterey Bay: Oscillating")
 }             
 filename_movie = tempfile()
 
@@ -64,7 +99,7 @@ filename_movie = tempfile()
 
 phivechalf = 30 + 60 * 1/(1 + exp(seq(-7, 20, length.out = 180)/2))
 phivecfull = c(phivechalf, rev(phivechalf))
-thetavec = -90 + 60 * sin(seq(0,359,length.out = 360) * pi/180)
+thetavec = -90 + 45 * sin(seq(0,359,length.out = 360) * pi/180)
 zoomvec = 0.45 + 0.2 * 1/(1 + exp(seq(-5, 20, length.out = 180)))
 zoomvecfull = c(zoomvec, rev(zoomvec))
 \donttest{
@@ -75,5 +110,6 @@ montereybay \%>\%
 #Un-comment the following to run
 #render_movie(filename = filename_movie, type = "custom", 
 #             frames = 360,  phi = phivecfull, zoom = zoomvecfull, theta = thetavec)
+rgl::rgl.close()
 }
 }

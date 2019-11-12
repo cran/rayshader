@@ -4,12 +4,47 @@
 \alias{render_snapshot}
 \title{Render Snapshot of 3D Visualization}
 \usage{
-render_snapshot(filename, clear = FALSE)
+render_snapshot(filename, clear = FALSE, title_text = NULL,
+  title_offset = c(20, 20), title_color = "black", title_size = 30,
+  title_font = "sans", title_bar_color = NULL, title_bar_alpha = 0.5,
+  image_overlay = NULL, vignette = FALSE,
+  instant_capture = interactive(), bring_to_front = FALSE, ...)
 }
 \arguments{
 \item{filename}{Filename of snapshot. If missing, will display to current device.}
 
 \item{clear}{Default `FALSE`. If `TRUE`, the current `rgl` device will be cleared.}
+
+\item{title_text}{Default `NULL`. Text. Adds a title to the image, using magick::image_annotate.}
+
+\item{title_offset}{Default `c(20,20)`. Distance from the top-left (default, `gravity` direction in 
+image_annotate) corner to offset the title.}
+
+\item{title_color}{Default `black`. Font color.}
+
+\item{title_size}{Default `30`. Font size in pixels.}
+
+\item{title_font}{Default `sans`. String with font family such as "sans", "mono", "serif", "Times", "Helvetica", 
+"Trebuchet", "Georgia", "Palatino" or "Comic Sans".}
+
+\item{title_bar_color}{Default `NULL`. If a color, this will create a colored bar under the title.}
+
+\item{title_bar_alpha}{Default `0.5`. Transparency of the title bar.}
+
+\item{image_overlay}{Default `NULL`. Either a string indicating the location of a png image to overlay
+over the image (transparency included), or a 4-layer RGBA array. This image will be resized to the 
+dimension of the image if it does not match exactly.}
+
+\item{vignette}{Default `FALSE`. If `TRUE` or numeric, a camera vignetting effect will be added to the image.
+`1` is the darkest vignetting, while `0` is no vignetting. If vignette is a length-2 vector, the second entry will
+control the blurriness of the vignette effect.}
+
+\item{instant_capture}{Default `TRUE` if interactive, `FALSE` otherwise. If `FALSE`, a slight delay is added 
+before taking the snapshot. This can help stop prevent rendering issues when running scripts.}
+
+\item{bring_to_front}{Default `FALSE`. Whether to bring the window to the front when taking the snapshot.}
+
+\item{...}{Additional parameters to pass to magick::image_annotate.}
 }
 \value{
 Displays snapshot of current rgl plot (or saves to disk).
@@ -21,10 +56,29 @@ Either captures the current rgl view and displays, or saves the current view to 
 \dontrun{
 montereybay \%>\%
  sphere_shade() \%>\%
- plot_3d(montereybay,zscale=50,zoom=0.6,theta=-90)
+ plot_3d(montereybay,zscale=50,zoom=0.6,theta=-90,phi=30)
 }
  
 \dontrun{
-render_snapshot(clear = TRUE)
+render_snapshot()
+}
+
+\dontrun{
+}
+ 
+#Create a title, but also pass the `gravity` argument to magick::image_annotate using ...
+#to center the text.
+\dontrun{
+render_snapshot(title_text = "Monterey Bay, California", 
+               title_color = "white", title_bar_color = "black",
+               title_font = "Helvetica", gravity = "North")
+               
+#Add a vignette effect
+render_camera(zoom=0.8)
+render_snapshot(title_text = "Monterey Bay, California", 
+               title_color = "white", title_bar_color = "darkgreen",
+               vignette = TRUE, 
+               title_font = "Helvetica", gravity = "North")
+rgl::rgl.close()
 }
 }

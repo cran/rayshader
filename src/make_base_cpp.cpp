@@ -97,19 +97,19 @@ List make_water_cpp(NumericMatrix& heightmap,
         if(heightmap(0+j,i) < waterheight && heightmap(0+j,i+1) < waterheight) {
           adjust = (waterheight - heightmap(0+j,i))/(heightmap(0+j,i+1)-heightmap(0+j,i));
           if(heightmap(0+j,i+1) > waterheight && fabs(adjust) < 1) {
-            endcoord = -(double)i - 1 - adjust;
+            endcoord = -(double)i - adjust;
           } else {
-            endcoord = -i - 2;
+            endcoord = -i - 1;
           }
-          vertices.push_back(vec2matrix(NumericVector::create(1+j,1+j,1+j, heightmap(0+j,i),waterheight,waterheight, -i-1,-i-1,endcoord),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(1+j,1+j,1+j, heightmap(0+j,i),waterheight,waterheight, -i,-i,endcoord),3,3));
           if(heightmap(0+j,i) > waterheight && fabs(adjust) < 1) {
-            begincoord = -(double)i - 1 - adjust;
+            begincoord = -(double)i - adjust;
             heighttemp = waterheight;
           } else {
-            begincoord = -i-1;
+            begincoord = -i;
             heighttemp = heightmap(0+j,i);
           }
-          vertices.push_back(vec2matrix(NumericVector::create(1+j,1+j,1+j, heighttemp,waterheight,heightmap(0+j,i+1), begincoord,-i-2,-i-2),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(1+j,1+j,1+j, heighttemp,waterheight,heightmap(0+j,i+1), begincoord,-i-1,-i-1),3,3));
         }
       }
     }
@@ -121,14 +121,14 @@ List make_water_cpp(NumericMatrix& heightmap,
     }
     for(int i = 0; i < rows-1; i++) {
       if(((na_matrix(i,j-offset) && !na_matrix(i,j) && !na_matrix(i+1,j)) || (na_matrix(i+1,j-offset) && !na_matrix(i+1,j))) || j == 0) {
-        if(heightmap(i,0+j) < waterheight, heightmap(i+1,0+j) < waterheight) {
+        if(heightmap(i,0+j) < waterheight && heightmap(i+1,0+j) < waterheight) {
           adjust = (waterheight - heightmap(i,0+j))/(heightmap(i+1,0+j)-heightmap(i,0+j));
           if(heightmap(i+1,0+j) > waterheight && fabs(adjust) < 1) {
             endcoord = (double)i + 1 + adjust;
           } else {
             endcoord = i+2;
           }
-          vertices.push_back(vec2matrix(NumericVector::create(i+1,endcoord,i+1, heightmap(i,0+j),waterheight,waterheight,  -1-j,-1-j,-1-j),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(i+1,endcoord,i+1, heightmap(i,0+j),waterheight,waterheight,  -j,-j,-j),3,3));
           if(heightmap(i,0+j) > waterheight && fabs(adjust) < 1) {
             begincoord = (double)i + 1 + adjust;
             heighttemp = waterheight;
@@ -136,7 +136,7 @@ List make_water_cpp(NumericMatrix& heightmap,
             begincoord = i+1;
             heighttemp = heightmap(i,0+j);
           }
-          vertices.push_back(vec2matrix(NumericVector::create(begincoord,i+2,i+2, heighttemp,heightmap(i+1,0+j),waterheight, -1-j,-1-j,-1-j),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(begincoord,i+2,i+2, heighttemp,heightmap(i+1,0+j),waterheight, -j,-j,-j),3,3));
         }
       }
     }
@@ -151,26 +151,26 @@ List make_water_cpp(NumericMatrix& heightmap,
         if(heightmap(j,i) < waterheight && heightmap(j,i+1) < waterheight) {
           adjust = (waterheight - heightmap(j,i))/(heightmap(j,i+1)-heightmap(j,i));
           if(heightmap(j,i+1) > waterheight && fabs(adjust) < 1) {
-            endcoord = -(double)i - 1 - adjust;
+            endcoord = -(double)i - adjust;
           } else {
-            endcoord = -i - 2;
+            endcoord = -i - 1;
           }
-          vertices.push_back(vec2matrix(NumericVector::create(j+offset,j+offset,j+offset, heightmap(j,i),waterheight,waterheight, -i-1, endcoord, -i-1),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(j+1,j+1,j+1, heightmap(j,i),waterheight,waterheight, -i, endcoord, -i),3,3));
           if(heightmap(j,i) > waterheight && fabs(adjust) < 1) {
-            begincoord = -(double)i - 1 - adjust;
+            begincoord = -(double)i - adjust;
             heighttemp = waterheight;
           } else {
-            begincoord = -i-1;
+            begincoord = -i;
             heighttemp = heightmap(j,i);
           }
-          vertices.push_back(vec2matrix(NumericVector::create(j+offset,j+offset,j+offset, heighttemp,heightmap(j,i+1),waterheight, begincoord,-i-2,-i-2),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(j+1,j+1,j+1, heighttemp,heightmap(j,i+1),waterheight, begincoord,-i-1,-i-1),3,3));
         }
       }
     }
   }
   for(int j = 0; j < cols; j++) {
     offset = 0;
-    if(j != rows - 1) {
+    if(j != cols - 1) {
       offset = 1;
     }
     for(int i = 0; i < rows-1; i++) {
@@ -178,19 +178,19 @@ List make_water_cpp(NumericMatrix& heightmap,
         if(heightmap(i,j) < waterheight && heightmap(i+1,j) < waterheight) {
           adjust = (waterheight - heightmap(i,j))/(heightmap(i+1,j)-heightmap(i,j));
           if(heightmap(i+1,j) > waterheight && fabs(adjust) < 1) {
-            endcoord = (double)i + 1 + adjust;
+            endcoord = (double)i + adjust;
           } else {
             endcoord = i+2;
           }
-          vertices.push_back(vec2matrix(NumericVector::create(i+1,i+1,endcoord, heightmap(i,j),waterheight,waterheight,-j-offset,-j-offset,-j-offset),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(i+1,i+1,endcoord, heightmap(i,j),waterheight,waterheight,-j,-j,-j),3,3));
           if(heightmap(i,j) > waterheight && fabs(adjust) < 1) {
-            begincoord = (double)i + 1 + adjust;
+            begincoord = (double)i  + adjust;
             heighttemp = waterheight;
           } else {
             begincoord = i+1;
             heighttemp = heightmap(i,j);
           }
-          vertices.push_back(vec2matrix(NumericVector::create(begincoord,i+2,i+2,  heighttemp,waterheight,heightmap(i+1,j), -j-offset,-j-offset,-j-offset),3,3));
+          vertices.push_back(vec2matrix(NumericVector::create(begincoord,i+2,i+2,  heighttemp,waterheight,heightmap(i+1,j), -j,-j,-j),3,3));
         }
       }
     }
@@ -282,9 +282,9 @@ List make_waterlines_cpp(NumericMatrix& heightmap,
         //Finish drawing if not NA AND
           //the back left or back right entries are NA AND the front left and front right entries are NOT NA OR
           //It is NA right in front of that entry
-        if(!na_matrix(j,i) &&
+        if((!na_matrix(j,i) &&
            (((na_matrix(j+offset2,i-offsetside) || na_matrix(j-offset,i-offsetside)) && (!na_matrix(j+offset2,i+offsetside2) || !na_matrix(j-offset,i+offsetside2))) ||
-           na_matrix(j,i+offsetside)) || i == cols - 1) {
+           na_matrix(j,i+offsetside))) || i == cols - 1) {
           drawing = false;
           if(i != cols-1) {
             adjust = (waterdepth - heightmap(j,i-1))/(heightmap(j,i)-heightmap(j,i-1));
@@ -392,9 +392,9 @@ List make_waterlines_cpp(NumericMatrix& heightmap,
         //Finish drawing if not NA AND
           //the back left or back right entries are NA AND the front left and front right entries are NOT NA OR
           //It is NA right in front of that entry
-        if(!na_matrix(i,j) &&
+        if((!na_matrix(i,j) &&
            (((na_matrix(i-offsetside,j-offset) || na_matrix(i-offsetside,j+offset2)) && (!na_matrix(i+offsetside2,j-offset) || !na_matrix(i+offsetside2,j+offset2))) ||
-           na_matrix(i+offsetside,j)) || i == rows - 1) {
+           na_matrix(i+offsetside,j))) || i == rows - 1) {
           drawing = false;
           if(i != rows-1) {
             adjust = (waterdepth - heightmap(i-1,j))/(heightmap(i,j)-heightmap(i-1,j));
@@ -448,8 +448,7 @@ List make_baselines_cpp(NumericMatrix& heightmap,
   int offsetside, offsetside2 = 0;
   bool drawing = false;
   double startcoord, endcoord = 1;
-  double adjust;
-  
+
   for(int j = 0; j < rows; j++) {
     drawing = false;
     if(j != 0) {
@@ -500,9 +499,9 @@ List make_baselines_cpp(NumericMatrix& heightmap,
         //Finish drawing if not NA AND
         //the back left or back right entries are NA AND the front left and front right entries are NOT NA OR
         //It is NA right in front of that entry
-        if(!na_matrix(j,i) &&
+        if((!na_matrix(j,i) &&
            (((na_matrix(j+offset2,i-offsetside) || na_matrix(j-offset,i-offsetside)) && (!na_matrix(j+offset2,i+offsetside2) || !na_matrix(j-offset,i+offsetside2))) ||
-           na_matrix(j,i+offsetside)) || i == cols - 1) {
+           na_matrix(j,i+offsetside))) || i == cols - 1) {
           drawing = false;
           if(i != cols-1) {
             endcoord = (double)i+1;
@@ -582,9 +581,9 @@ List make_baselines_cpp(NumericMatrix& heightmap,
         //Finish drawing if not NA AND
         //the back left or back right entries are NA AND the front left and front right entries are NOT NA OR
         //It is NA right in front of that entry
-        if(!na_matrix(i,j) &&
+        if((!na_matrix(i,j) &&
            (((na_matrix(i-offsetside,j-offset) || na_matrix(i-offsetside,j+offset2)) && (!na_matrix(i+offsetside2,j-offset) || !na_matrix(i+offsetside2,j+offset2))) ||
-           na_matrix(i+offsetside,j))  || i == rows - 1) {
+           na_matrix(i+offsetside,j)))  || i == rows - 1) {
           drawing = false;
           if(i != rows-1) {
             endcoord = (double)i+1;

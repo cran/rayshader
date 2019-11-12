@@ -1,0 +1,286 @@
+#'@title Render High Quality
+#'
+#'@description Renders a raytraced version of the displayed rgl scene, using the `rayrender` package. 
+#'User can specify the light direction, intensity, and color, as well as specify the material of the 
+#'ground and add additional scene elements.
+#'
+#'Note: This version does not yet support meshes with missing entries (e.g. if any NA values are present,
+#'output will be ugly and wrong).
+#'
+#'@param filename Filename of saved image. If missing, will display to current device.
+#'@param light Default `TRUE`. Whether there should be a light in the scene. If not, the scene will be lit with a bluish sky.
+#'@param lightdirection Default `315`. Position of the light angle around the scene. 
+#'If this is a vector longer than one, multiple lights will be generated (using values from 
+#'`lightaltitude`, `lightintensity`, and `lightcolor`)
+#'@param lightaltitude Default `45`. Angle above the horizon that the light is located. 
+#'If this is a vector longer than one, multiple lights will be generated (using values from 
+#'`lightdirection`, `lightintensity`, and `lightcolor`)
+#'@param lightsize Default `NULL`. Radius of the light(s). Automatically chosen, but can be set here by the user.
+#'@param lightintensity Default `500`. Intensity of the light.
+#'@param lightcolor Default `white`. The color of the light.
+#'@param cache_filename Name of temporary filename to store OBJ file, if the user does not want to rewrite the file each time.
+#'@param width Defaults to the width of the rgl window. Width of the rendering. 
+#'@param height Defaults to the height of the rgl window. Height of the rendering. 
+#'@param title_text Default `NULL`. Text. Adds a title to the image, using magick::image_annotate. 
+#'@param title_offset Default `c(20,20)`. Distance from the top-left (default, `gravity` direction in 
+#'image_annotate) corner to offset the title.
+#'@param title_size Default `30`. Font size in pixels.
+#'@param title_color Default `black`. Font color.
+#'@param title_font Default `sans`. String with font family such as "sans", "mono", "serif", "Times", "Helvetica", 
+#'"Trebuchet", "Georgia", "Palatino" or "Comic Sans".
+#'@param title_bar_color Default `NULL`. If a color, this will create a colored bar under the title.
+#'@param title_bar_alpha Default `0.5`. Transparency of the title bar.
+#'@param ground_material Default `diffuse()`. Material defined by the rayrender material functions.
+#'@param camera_location Default `NULL`. Custom position of the camera. The `FOV`, `width`, and `height` arguments will still
+#'be derived from the rgl window.
+#'@param camera_lookat Default `NULL`. Custom point at which the camera is directed. The `FOV`, `width`, and `height` arguments will still
+#'be derived from the rgl window.
+#'@param scene_elements Default `NULL`. Extra scene elements to add to the scene, created with rayrender.
+#'@param clear Default `FALSE`. If `TRUE`, the current `rgl` device will be cleared.
+#'@param print_scene_info Default `FALSE`. If `TRUE`, it will print the position and lookat point of the camera.
+#'@param ... Additional parameters to pass to rayrender::render_scene()
+#'@import rayrender
+#'@export
+#'@examples
+#'#Render the volcano dataset using pathtracing
+#'\donttest{
+#'volcano %>%
+#'  sphere_shade() %>%
+#'  plot_3d(volcano,zscale = 2)
+#'render_highquality()
+#'}
+#'
+#'#Change position of light
+#'\donttest{
+#'render_highquality(lightdirection = 45)
+#'}
+#'
+#'#Change vertical position of light
+#'\donttest{
+#'render_highquality(lightdirection = 45, lightaltitude=10)
+#'}
+#'
+#'#Change the ground material
+#'\donttest{
+#'render_highquality(lightdirection = 45, lightaltitude=60, 
+#'                   ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"))
+#'}
+#'
+#'#Add three different color lights and a title
+#'\donttest{
+#'render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
+#'                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
+#'                   title_bar_color="white", title_bar_alpha=0.8)
+#'}
+#'
+#'#Change the camera:
+#'\donttest{
+#'render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
+#'render_highquality(lightdirection = c(0), 
+#'                   title_bar_color="white", title_bar_alpha=0.8)
+#'}
+#'#Add a shiny metal sphere
+#'\donttest{
+#'render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
+#'render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
+#'                   lightcolor=c("red","green","blue"),
+#'                   scene_elements = rayrender::sphere(z=-60,y=0,
+#'                                                      radius=20,material=rayrender::metal()))
+#'}
+#'
+#'#Add a red light to the volcano and change the ambient light to dusk
+#'\donttest{
+#'render_camera(theta=45,phi=45)
+#'render_highquality(lightdirection = c(240), lightaltitude=30, 
+#'                   lightcolor=c("#5555ff"),
+#'                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
+#'                                    material=rayrender::diffuse(color="red",
+#'                                                                lightintensity=10, 
+#'                                                                implicit_sample=TRUE)))
+#'}
+#'#Manually change the camera location and direction
+#'\donttest{
+#'render_camera(theta=45,phi=45,fov=90)
+#'render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
+#'                   camera_location = c(50,10,10), camera_lookat = c(0,15,0), 
+#'                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
+#'                                    material=rayrender::diffuse(color="red",
+#'                                                                lightintensity=10, 
+#'                                                                implicit_sample=TRUE)))
+#'rgl::rgl.close()
+#'}
+render_highquality = function(filename = NULL, light = TRUE, lightdirection = 315, lightaltitude = 45, lightsize=NULL,
+                              lightintensity = 500, lightcolor = "white", 
+                              cache_filename=NULL, width = NULL, height = NULL, 
+                              title_text = NULL, title_offset = c(20,20), 
+                              title_color = "black", title_size = 30, title_font = "sans",
+                              title_bar_color = NULL, title_bar_alpha = 0.5,
+                              ground_material = diffuse(), scene_elements=NULL, 
+                              camera_location = NULL, camera_lookat = c(0,0,0), clear  = FALSE, 
+                              print_scene_info = FALSE, ...) {
+  if(rgl::rgl.cur() == 0) {
+    stop("No rgl window currently open.")
+  }
+  windowrect = rgl::par3d()$windowRect
+  if(!is.null(title_text)) {
+    has_title = TRUE
+  } else {
+    has_title = FALSE
+  }
+  if(is.null(width)) {
+    width = windowrect[3]-windowrect[1]
+  }
+  if(is.null(height)) {
+    height = windowrect[4]-windowrect[2]
+  }
+  no_cache = FALSE
+  if(is.null(cache_filename)) {
+    no_cache = TRUE
+    if(.Platform$OS.type == "windows") {
+      sepval = "\\"
+    } else {
+      sepval = "/"
+    }
+    cache_filename = paste0(tempdir(), sepval, "temprayfile.obj")
+  }
+  shadowid = get_ids_with_labels(typeval = "shadow")
+  if(nrow(shadowid) > 0) {
+    shadowvertices = rgl.attrib(shadowid$id[1], "vertices")
+    shadowdepth = shadowvertices[1,2]
+    has_shadow = TRUE
+  } else {
+    has_shadow = FALSE
+  }
+  fov = rgl::par3d()$FOV
+  rotmat = rot_to_euler(rgl::par3d()$userMatrix)
+  projmat = rgl::par3d()$projMatrix
+  zoom = rgl::par3d()$zoom
+  phi = rotmat[1]
+  if(0.001 > abs(abs(rotmat[3]) - 180)) {
+    theta = -rotmat[2] + 180
+    movevec = rgl::rotationMatrix(-rotmat[2]*pi/180, 0, 1, 0) %*%
+      rgl::rotationMatrix(-rotmat[1]*pi/180, 1, 0, 0) %*% 
+      rgl::par3d()$userMatrix[,4]
+  } else {
+    theta = rotmat[2]
+    movevec = rgl::rotationMatrix(rotmat[3]*pi/180, 0, 0, 1) %*%
+      rgl::rotationMatrix(-rotmat[2]*pi/180, 0, 1, 0) %*%
+      rgl::rotationMatrix(-rotmat[1]*pi/180, 1, 0, 0) %*% 
+      rgl::par3d()$userMatrix[,4]
+  }
+  movevec = movevec[1:3]
+  observer_radius = rgl::par3d()$observer[3]
+  lookvals = rgl::par3d()$bbox
+  if(fov == 0) {
+    ortho_dimensions = c(2/projmat[1,1],2/projmat[2,2])
+  } else {
+    fov = 2 * atan(1/projmat[2,2]) * 180/pi
+    ortho_dimensions = c(1,1)
+  }
+  bbox_center = c(mean(lookvals[1:2]),mean(lookvals[3:4]),mean(lookvals[5:6])) - movevec
+  observery = sinpi(phi/180) * observer_radius
+  observerx = cospi(phi/180) * sinpi(theta/180) * observer_radius 
+  observerz = cospi(phi/180) * cospi(theta/180) * observer_radius 
+  if(is.null(camera_location)) {
+    lookfrom = c(observerx,observery,observerz) 
+  } else {
+    lookfrom = camera_location
+  }
+  if(substring(cache_filename, nchar(cache_filename)-3,nchar(cache_filename)) != ".obj") {
+    cache_filename = paste0(cache_filename,".obj")
+  }
+  if(no_cache || !file.exists(cache_filename)) {
+    save_obj(cache_filename)
+  }
+  scene = obj_model(cache_filename, x=-bbox_center[1],y = -bbox_center[2],z=-bbox_center[3], texture=TRUE)
+  if(has_shadow) {
+    scene = add_object(scene, xz_rect(zwidth=100000,xwidth=100000,y=shadowdepth-bbox_center[2], material = ground_material))
+  }
+  if(light) {
+    if(is.null(lightsize)) {
+      lightsize = observer_radius/5
+    }
+    if(length(lightaltitude) >= 1 || length(lightdirection) >= 1) {
+      if(length(lightaltitude) > 1 && length(lightdirection) > 1 && length(lightdirection) != length(lightaltitude)) {
+        stop("lightaltitude vector ", lightaltitude, " and lightdirection vector ", lightdirection, "both greater than length 1 but not equal length" )
+      }
+      numberlights = ifelse(length(lightaltitude) > length(lightdirection), length(lightaltitude),length(lightdirection))
+      lightaltitudetemp = lightaltitude[1]
+      lightdirectiontemp = lightdirection[1]
+      lightintensitytemp = lightintensity[1]
+      lightcolortemp = lightcolor[1]
+      lightsizetemp = lightsize[1]
+      for(i in seq_len(numberlights)) {
+        if(!is.na(lightaltitude[i])) {
+          lightaltitudetemp = lightaltitude[i]
+        }
+        if(!is.na(lightdirection[i])) {
+          lightdirectiontemp = lightdirection[i]
+        }
+        if(!is.na(lightintensity[i])) {
+          lightintensitytemp = lightintensity[i]
+        }
+        if(!is.na(lightcolor[i])) {
+          lightcolortemp = lightcolor[i]
+        }
+        if(!is.na(lightsize[i])) {
+          lightsizetemp = lightsize[i]
+        }
+        scene = add_object(scene, sphere(x=observer_radius*5 * cospi(lightaltitudetemp/180) * sinpi(lightdirectiontemp/180),
+                                         y=observer_radius*5 * sinpi(lightaltitudetemp/180),
+                                         z=-observer_radius*5 * cospi(lightaltitudetemp/180) * cospi(lightdirectiontemp/180), radius=lightsizetemp,
+                                         material = diffuse(color = lightcolortemp, lightintensity = lightintensitytemp, implicit_sample=TRUE)))
+      }
+    }
+  }
+  if(print_scene_info) {
+    print(paste0(c("Camera position: c(", paste0(lookfrom,collapse=","), 
+                   "), Camera lookat: c(", paste0(camera_lookat,collapse=","), ")"),collapse=""))
+  }
+  if(!is.null(scene_elements)) {
+    scene = add_object(scene,scene_elements)
+  }
+  if(has_title) {
+    temp = tempfile(fileext = ".png")
+    render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=temp,
+                 ortho_dimensions = ortho_dimensions, width = width, height = height, ...)
+    if(has_title) {
+      if(!("magick" %in% rownames(utils::installed.packages()))) {
+        stop("`magick` package required for adding title")
+      }
+      if(!is.null(title_bar_color)) {
+        title_bar_color = col2rgb(title_bar_color)/255
+        title_bar = array(0,c(width,height,4))
+        title_bar_width = 2 * title_offset[1] + title_size
+        title_bar[1:title_bar_width,,1] = title_bar_color[1]
+        title_bar[1:title_bar_width,,2] = title_bar_color[2]
+        title_bar[1:title_bar_width,,3] = title_bar_color[3]
+        title_bar[1:title_bar_width,,4] = title_bar_alpha
+        title_bar_temp = paste0(tempfile(),".png")
+        png::writePNG(title_bar,title_bar_temp)
+        magick::image_read(temp) %>%
+          magick::image_composite(magick::image_read(title_bar_temp),
+          ) %>%
+          magick::image_write(path = temp, format = "png")
+      }
+      magick::image_read(temp) %>%
+        magick::image_annotate(title_text, 
+                               location = paste0("+", title_offset[1],"+",title_offset[2]),
+                               size = title_size, color = title_color, 
+                               font = title_font) %>%
+        magick::image_write(path = temp, format = "png")
+      tempfileload = png::readPNG(temp)
+      if(is.null(filename)) {
+        plot_map(tempfileload)
+      } else {
+        save_png(tempfileload,filename)
+      }
+    }
+  } else {
+    render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
+                 ortho_dimensions = ortho_dimensions, width = width, height = height, ...)
+  }
+  if(clear) {
+    rgl::rgl.clear()
+  }
+}
