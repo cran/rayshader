@@ -4,17 +4,42 @@
 \alias{render_highquality}
 \title{Render High Quality}
 \usage{
-render_highquality(filename = NULL, light = TRUE,
-  lightdirection = 315, lightaltitude = 45, lightsize = NULL,
-  lightintensity = 500, lightcolor = "white",
-  obj_material = diffuse(), cache_filename = NULL, width = NULL,
-  height = NULL, title_text = NULL, title_offset = c(20, 20),
-  title_color = "black", title_size = 30, title_font = "sans",
-  title_bar_color = NULL, title_bar_alpha = 0.5,
-  ground_material = diffuse(), ground_size = 1e+05,
-  scene_elements = NULL, camera_location = NULL, camera_lookat = c(0,
-  0, 0), camera_interpolate = 1, clear = FALSE,
-  print_scene_info = FALSE, ...)
+render_highquality(
+  filename = NULL,
+  light = TRUE,
+  lightdirection = 315,
+  lightaltitude = 45,
+  lightsize = NULL,
+  lightintensity = 500,
+  lightcolor = "white",
+  obj_material = rayrender::diffuse(),
+  cache_filename = NULL,
+  width = NULL,
+  height = NULL,
+  text_angle = NULL,
+  text_size = 6,
+  text_offset = c(0, 0, 0),
+  line_radius = 0.5,
+  scale_text_angle = NULL,
+  scale_text_size = 6,
+  scale_text_offset = c(0, 0, 0),
+  title_text = NULL,
+  title_offset = c(20, 20),
+  title_color = "black",
+  title_size = 30,
+  title_font = "sans",
+  title_bar_color = NULL,
+  title_bar_alpha = 0.5,
+  ground_material = rayrender::diffuse(),
+  ground_size = 1e+05,
+  scene_elements = NULL,
+  camera_location = NULL,
+  camera_lookat = c(0, 0, 0),
+  camera_interpolate = 1,
+  clear = FALSE,
+  print_scene_info = FALSE,
+  ...
+)
 }
 \arguments{
 \item{filename}{Filename of saved image. If missing, will display to current device.}
@@ -42,6 +67,22 @@ If this is a vector longer than one, multiple lights will be generated (using va
 \item{width}{Defaults to the width of the rgl window. Width of the rendering.}
 
 \item{height}{Defaults to the height of the rgl window. Height of the rendering.}
+
+\item{text_angle}{Default `NULL`, which forces the text always to face the camera. If a single angle (degrees),
+will specify the absolute angle all the labels are facing. If three angles, this will specify all three orientations
+(relative to the x,y, and z axes) of the text labels.}
+
+\item{text_size}{Default `6`. Height of the text.}
+
+\item{text_offset}{Default `c(0,0,0)`. Offset to be applied to all text labels.}
+
+\item{line_radius}{Default `0.5`. Radius of the label line segments.}
+
+\item{scale_text_angle}{Default `NULL`. Same as `text_angle`, but for the scale bar.}
+
+\item{scale_text_size}{Default `6`. Height of the scale bar text.}
+
+\item{scale_text_offset}{Default `c(0,0,0)`. Offset to be applied to all scale bar text labels.}
 
 \item{title_text}{Default `NULL`. Text. Adds a title to the image, using magick::image_annotate.}
 
@@ -84,9 +125,6 @@ and `camera_lookat` vectors.}
 Renders a raytraced version of the displayed rgl scene, using the `rayrender` package. 
 User can specify the light direction, intensity, and color, as well as specify the material of the 
 ground and add additional scene elements.
-
-Note: This version does not yet support meshes with missing entries (e.g. if any NA values are present,
-output will be ugly and wrong).
 }
 \examples{
 #Render the volcano dataset using pathtracing

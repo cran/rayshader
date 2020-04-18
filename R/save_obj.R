@@ -46,7 +46,7 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
         tempbase = filename
         current_dir = TRUE
       }
-      if(substring(filename, nchar(filename)-3,nchar(filename)) == ".obj") {
+      if(tools::file_ext(filename) == "obj") {
         if(current_dir) {
           filename_mtl = paste0(substring(tempbase, 1,nchar(tempbase)-4),".mtl")
         } else {
@@ -60,22 +60,25 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
         }
       }
     }
-    if(substring(filename, nchar(filename)-3,nchar(filename)) != ".obj") {
+    if(tools::file_ext(filename) != "obj") {
       filename = paste0(filename,".obj")
     }
     con = file(filename, "w")
+    on.exit(close(con))
     if(save_texture) {
       con_mtl = file(filename_mtl, "w")
+      on.exit(close(con_mtl), add = TRUE)
     }
   }
 
   number_vertices = 0
   number_texcoords = 0
   number_normals = 0
-  
+  # allvertices = matrix(nrow=0,ncol=3) #Debug line
   #Writes data and increments vertex/normal/texture counter
   write_data = function(id, con) {
     vertices = rgl.attrib(id, "vertices")
+    # allvertices <<- rbind(allvertices,vertices) #Debug line
     textures = rgl.attrib(id, "texcoords")
     normals = rgl.attrib(id, "normals")
     cat(paste0("v ", sprintf("%1.6f %1.6f %1.6f",vertices[,1], vertices[,2], vertices[,3])), file=con, sep = "\n")
@@ -111,6 +114,42 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
       cat(paste("d", sprintf("%1.4f",idrow$water_alpha[[1]]),collapse = " "), file=con, sep="\n")
       cat(paste("Ni", sprintf("%1.4f",water_index_refraction),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
+    } else if (!is.na(idrow$north_color[[1]])) {
+      tempcol = col2rgb(idrow$north_color[[1]])/256
+      cat(paste("newmtl ray_north"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
+    } else if (!is.na(idrow$arrow_color[[1]])) {
+      tempcol = col2rgb(idrow$arrow_color[[1]])/256
+      cat(paste("newmtl ray_arrow"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
+    } else if (!is.na(idrow$bevel_color[[1]])) {
+      tempcol = col2rgb(idrow$bevel_color[[1]])/256
+      cat(paste("newmtl ray_bevel"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
+    } else if (!is.na(idrow$background_color[[1]])) {
+      tempcol = col2rgb(idrow$background_color[[1]])/256
+      cat(paste("newmtl ray_background"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
+    } else if (!is.na(idrow$scalebar1_color[[1]])) {
+      tempcol = col2rgb(idrow$scalebar1_color[[1]])/256
+      cat(paste("newmtl ray_scalebar1"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
+    } else if (!is.na(idrow$scalebar2_color[[1]])) {
+      tempcol = col2rgb(idrow$scalebar2_color[[1]])/256
+      cat(paste("newmtl ray_scalebar2"), file=con, sep="\n")
+      cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
+      cat("\n", file=con)
     }
   }
   
@@ -132,9 +171,12 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
   vertex_info$endindextex = NA
   vertex_info$endindexnormals = NA
   wrote_water = FALSE
+
   for(row in 1:nrow(vertex_info)) {
     id = vertex_info$id[row]
-    if(vertex_info$raytype[row] %in% c("surface","base","basebottom","water")) {
+    if(vertex_info$raytype[row] %in% c("surface","base","basebottom","water",
+                                       "north_symbol","arrow_symbol", "bevel_symbol",
+                                       "background_symbol", "scalebar_col1", "scalebar_col2")) {
       vertex_info$startindex[row] = number_vertices + 1
       vertex_info$startindextex[row] = number_texcoords + 1
       vertex_info$startindexnormals[row] = number_normals + 1
@@ -163,22 +205,62 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
         cat("usemtl ray_surface", file=con, sep ="\n")
       }
       dims = rgl::rgl.attrib(vertex_info$id[row], "dim")
+      vertices_y = rgl.attrib(vertex_info$id[row], "vertices")[,2]
       nx = dims[1]
       nz = dims[2] 
       indices = rep(0, 6 * (nz - 1) * (nx - 1))
       counter = 0
+      na_counter = 0
       for(i in seq_len(nz)[-nz]) {
         for(j in seq_len(nx)[-nx]) {
-          cindices = (i-1)*nx + c(j, j + nx, j + 1, j + nx, j + nx + 1, j + 1)
-          indices[(1:6 + 6*counter)] = cindices
-          counter = counter + 1
+          if(!is.na(vertices_y[(i-1)*nx + j]) && !is.na(vertices_y[(i+1-1)*nx + j]) && 
+             !is.na(vertices_y[(i-1)*nx + j+1]) && !is.na(vertices_y[(i+1-1)*nx + j+1]))  {
+            cindices = (i-1)*nx + c(j, j + nx, j + 1, j + nx, j + nx + 1, j + 1)
+            indices[(1:6 + 6*counter)] = cindices
+            counter = counter + 1
+          } else {
+            na_counter = na_counter + 2
+          }
         }
       }
+      indices = indices + vertex_info$startindextex[row] - 1
       indices = sprintf("%d/%d/%d", indices, indices, indices)
       indices = matrix(indices, ncol=3, byrow=TRUE)
+      indices = indices[1:(nrow(indices)-na_counter),]
       cat(paste("f", indices[,1], indices[,2], indices[,3]), 
           sep="\n", file=con)
-    } else if (vertex_info$raytype[row] == "base"){
+    } else if (vertex_info$raytype[row] == "basebottom") {
+      if(save_texture) {
+        cat("g Basebottom", file=con, sep ="\n")
+        cat("usemtl ray_base", file=con, sep ="\n")
+      }
+      dims = rgl::rgl.attrib(vertex_info$id[row], "dim")
+      vertices_y = rgl.attrib(vertex_info$id[row], "vertices")[,2]
+      nx = dims[1]
+      nz = dims[2] 
+      indices = rep(0, 6 * (nz - 1) * (nx - 1))
+      counter = 0
+      na_counter = 0
+      
+      for(i in seq_len(nz)[-nz]) {
+        for(j in seq_len(nx)[-nx]) {
+          if(!is.na(vertices_y[(i-1)*nx + j]) && !is.na(vertices_y[(i+1-1)*nx + j]) && 
+             !is.na(vertices_y[(i-1)*nx + j+1]) && !is.na(vertices_y[(i+1-1)*nx + j+1]))  {
+            cindices = (i-1)*nx + c(j, j + nx, j + 1, j + nx, j + nx + 1, j + 1)
+            indices[(1:6 + 6*counter)] = cindices
+            counter = counter + 1
+          } else {
+            na_counter = na_counter + 2
+          }
+        }
+      }
+      indices = indices + vertex_info$startindextex[row] - 1
+      indices = sprintf("%d//%d", indices, indices)
+      indices = matrix(indices, ncol=3, byrow=TRUE)
+      indices = indices[1:(nrow(indices)-na_counter),]
+      cat(paste("f", indices[,3], indices[,2], indices[,1]), 
+          sep="\n", file=con)
+    } else if (vertex_info$raytype[row] == "base") {
       if(save_texture) {
         cat("g Base", file=con, sep ="\n")
         cat("usemtl ray_base", file=con, sep ="\n")
@@ -202,19 +284,90 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
       }
       if(vertex_info$type[row] == "surface") {
         dims = rgl::rgl.attrib(vertex_info$id[row], "dim")
+        vertices_y = rgl.attrib(vertex_info$id[row], "vertices")[,2]
+        
         nx = dims[1]
         nz = dims[2] 
         indices = rep(0, 6 * (nz - 1) * (nx - 1))
         counter = 0
+        na_counter = 0
         for(i in seq_len(nz)[-nz]) {
           for(j in seq_len(nx)[-nx]) {
-            cindices = (i-1)*nx + c(j, j + nx, j + 1, j + nx, j + nx + 1, j + 1) + vertex_info$startindex[row]/3
-            indices[(1:6 + 6*counter)] = cindices
-            counter = counter + 1
+            if(!is.na(vertices_y[(i-1)*nx + j]) && !is.na(vertices_y[(i+1-1)*nx + j]) && 
+               !is.na(vertices_y[(i-1)*nx + j+1]) && !is.na(vertices_y[(i+1-1)*nx + j+1]))  {
+              cindices = (i-1)*nx + c(j, j + nx, j + 1, j + nx, j + nx + 1, j + 1)
+              indices[(1:6 + 6*counter)] = cindices
+              counter = counter + 1
+            } else {
+              na_counter = na_counter + 2
+            }
           }
         }
+        indices = indices + vertex_info$startindex[row] - 1
         indices = matrix(indices, ncol=3, byrow=TRUE)
-        cat(paste("f", sprintf("%d %d %d", indices[,1], indices[,2], indices[,3])), 
+        indices = indices[1:(nrow(indices)-na_counter),]
+        
+        cat(paste("f", sprintf("%f %f %f", indices[,1], indices[,2], indices[,3])), 
+            sep="\n", file=con)
+      } else {
+        baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+        cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+            sep="\n", file=con)
+      }
+    } else if (vertex_info$raytype[row] == "north_symbol") {
+      if(save_texture) {
+        cat("g North", file=con, sep ="\n")
+        cat("usemtl ray_north", file=con, sep ="\n")
+      }
+      baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+      cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+          sep="\n", file=con)
+    } else if (vertex_info$raytype[row] == "arrow_symbol") {
+      if(save_texture) {
+        cat("g Arrow", file=con, sep ="\n")
+        cat("usemtl ray_arrow", file=con, sep ="\n")
+      }
+      baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+      cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+          sep="\n", file=con)
+    } else if (vertex_info$raytype[row] == "bevel_symbol") {
+      if(save_texture) {
+        cat("g Bevel", file=con, sep ="\n")
+        cat("usemtl ray_bevel", file=con, sep ="\n")
+      }
+      baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+      cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+          sep="\n", file=con)
+    } else if (vertex_info$raytype[row] == "background_symbol") {
+      if(save_texture) {
+        cat("g Background", file=con, sep ="\n")
+        cat("usemtl ray_background", file=con, sep ="\n")
+      }
+      baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+      cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+          sep="\n", file=con)
+    } else if (vertex_info$raytype[row] == "scalebar_col1") {
+      if(save_texture) {
+        cat("g Scalebar1", file=con, sep ="\n")
+        cat("usemtl ray_scalebar1", file=con, sep ="\n")
+      }
+      if(vertex_info$type[row] == "quads") {
+        baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=4, byrow=TRUE)
+        cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3], baseindices[,4]), 
+            sep="\n", file=con)
+      } else {
+        baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
+        cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3]), 
+            sep="\n", file=con)
+      }
+    } else if (vertex_info$raytype[row] == "scalebar_col2") {
+      if(save_texture) {
+        cat("g Scalebar1", file=con, sep ="\n")
+        cat("usemtl ray_scalebar2", file=con, sep ="\n")
+      }
+      if(vertex_info$type[row] == "quads") {
+        baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=4, byrow=TRUE)
+        cat(paste("f", baseindices[,1], baseindices[,2], baseindices[,3], baseindices[,4]), 
             sep="\n", file=con)
       } else {
         baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
@@ -222,9 +375,5 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
             sep="\n", file=con)
       }
     }
-  }
-  close(con)
-  if(save_texture) {
-    close(con_mtl)
   }
 }
