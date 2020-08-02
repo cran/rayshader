@@ -171,12 +171,13 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
   vertex_info$endindextex = NA
   vertex_info$endindexnormals = NA
   wrote_water = FALSE
-
+  
   for(row in 1:nrow(vertex_info)) {
     id = vertex_info$id[row]
     if(vertex_info$raytype[row] %in% c("surface","base","basebottom","water",
                                        "north_symbol","arrow_symbol", "bevel_symbol",
-                                       "background_symbol", "scalebar_col1", "scalebar_col2")) {
+                                       "background_symbol", "scalebar_col1", "scalebar_col2",
+                                       "surface_tris")) {
       vertex_info$startindex[row] = number_vertices + 1
       vertex_info$startindextex[row] = number_texcoords + 1
       vertex_info$startindexnormals[row] = number_normals + 1
@@ -206,6 +207,11 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
       }
       dims = rgl::rgl.attrib(vertex_info$id[row], "dim")
       vertices_y = rgl.attrib(vertex_info$id[row], "vertices")[,2]
+      if(!is.na(vertex_info$startindexnormals[row]) && !is.na(vertex_info$endindexnormals[row])) {
+        hasnormals = vertex_info$startindexnormals[row] < vertex_info$endindexnormals[row]
+      } else {
+        hasnormals = FALSE
+      }
       nx = dims[1]
       nz = dims[2] 
       indices = rep(0, 6 * (nz - 1) * (nx - 1))
@@ -224,9 +230,28 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
         }
       }
       indices = indices + vertex_info$startindextex[row] - 1
-      indices = sprintf("%d/%d/%d", indices, indices, indices)
+      if(hasnormals) {
+        indices = sprintf("%d/%d/%d", indices, indices, indices)
+      } else {
+        indices = sprintf("%d/%d", indices, indices)
+      }
       indices = matrix(indices, ncol=3, byrow=TRUE)
       indices = indices[1:(nrow(indices)-na_counter),]
+      cat(paste("f", indices[,1], indices[,2], indices[,3]), 
+          sep="\n", file=con)
+    } else if(vertex_info$raytype[row] == "surface_tris") {
+      if(save_texture) {
+        cat("g Surface", file=con, sep ="\n")
+        cat("usemtl ray_surface", file=con, sep ="\n")
+      }
+      if(!is.na(vertex_info$startindexnormals[row]) && !is.na(vertex_info$endindexnormals[row])) {
+        hasnormals = vertex_info$startindexnormals[row] < vertex_info$endindexnormals[row]
+      } else {
+        hasnormals = FALSE
+      }
+      indices = vertex_info$startindextex[row]:vertex_info$endindex[row]
+      indices = sprintf("%d/%d", indices, indices)
+      indices = matrix(indices, ncol=3, byrow=TRUE)
       cat(paste("f", indices[,1], indices[,2], indices[,3]), 
           sep="\n", file=con)
     } else if (vertex_info$raytype[row] == "basebottom") {
@@ -265,8 +290,13 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1) {
         cat("g Base", file=con, sep ="\n")
         cat("usemtl ray_base", file=con, sep ="\n")
       }
+      if(!is.na(vertex_info$startindexnormals[row]) && !is.na(vertex_info$endindexnormals[row])) {
+        hasnormals = vertex_info$startindexnormals[row] < vertex_info$endindexnormals[row]
+      } else {
+        hasnormals = FALSE
+      }
       baseindices = matrix(vertex_info$startindex[row]:vertex_info$endindex[row], ncol=3, byrow=TRUE)
-      if(vertex_info$endindexnormals[row] > vertex_info$startindexnormals[row]) {
+      if(hasnormals) {
         cat(paste("f", sprintf("%d//%d %d//%d %d//%d", baseindices[,1], baseindices[,1],
                                baseindices[,2], baseindices[,2], 
                                baseindices[,3], baseindices[,3])), 

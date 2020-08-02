@@ -28,11 +28,6 @@
 #'@param fov Default `0`--isometric. Field-of-view angle.
 #'@param zoom Default `1`. Zoom factor.
 #'@param background Default `grey10`. Color of the background.
-#'@param calculate_normals Default `TRUE`. If `FALSE`, will not calculate per-vertex normals. Can also pass the
-#'output of the function `calculate_normals` to use pre-computed normals.
-#'@param litbase Default `FALSE`. If `TRUE`, the base will be a glossy material lit using the 
-#'`lit = TRUE` parameter in `rgl`. If calling `render_highquality()`, set this to `TRUE` to make sure
-#'rgl exports the sizes of the model.
 #'@param windowsize Default `600`. Position, width, and height of the `rgl` device displaying the plot. 
 #'If a single number, viewport will be a square and located in upper left corner. 
 #'If two numbers, (e.g. `c(600,800)`), user will specify width and height separately. 
@@ -40,6 +35,24 @@
 #'specify the location of the x-y coordinates of the bottom-left corner of the viewport on the screen,
 #'and the next two (or one, if square) specify the window size. NOTE: The absolute positioning of the
 #'window does not currently work on macOS (tested on Mojave), but the size can still be specified.
+#'@param precomputed_normals Default `NULL`. Takes the output of `calculate_normals()` to save
+#' computing normals internally.
+#'@param asp Default `1`. Aspect ratio of the resulting plot. Use `asp = 1/cospi(mean_latitude/180)` to rescale
+#'lat/long at higher latitudes to the correct the aspect ratio.
+#'@param triangulate Default `FALSE`. Reduce the size of the 3D model by triangulating the height map.
+#'Set this to `TRUE` if generating the model is slow, or moving it is choppy. Will also reduce the size
+#'of 3D models saved to disk.
+#'@param max_error Default `0.001`. Maximum allowable error when triangulating the height map,
+#'when `triangulate = TRUE`. Increase this if you encounter problems with 3D performance, want
+#'to decrease render time with `render_highquality()`, or need 
+#'to save a smaller 3D OBJ file to disk with `save_obj()`,
+#'@param max_tri Default `0`, which turns this setting off and uses `max_error`. 
+#'Maximum number of triangles allowed with triangulating the
+#'height map, when `triangulate = TRUE`. Increase this if you encounter problems with 3D performance, want
+#'to decrease render time with `render_highquality()`, or need 
+#'to save a smaller 3D OBJ file to disk with `save_obj()`,
+#'@param verbose Default `TRUE`, if `interactive()`. Prints information about the mesh triangulation
+#'if `triangulate = TRUE`.
 #'@param ... Additional arguments to pass to the `rgl::par3d` function.
 #'@import rgl
 #'@export
@@ -100,9 +113,10 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
                    water = FALSE, waterdepth = 0, watercolor="lightblue", wateralpha = 0.5, 
                    waterlinecolor=NULL, waterlinealpha = 1, 
                    linewidth = 2, lineantialias = FALSE,
-                   theta=45, phi = 45, fov=0, zoom = 1, 
-                   background="white", calculate_normals = TRUE, litbase = FALSE,
-                   windowsize = 600, ...) {
+                   theta=45, phi = 45, fov=0, zoom = 1, background="white", windowsize = 600,
+                   precomputed_normals = NULL, asp = 1,
+                   triangulate = FALSE, max_error = 0, max_tri = 0, verbose = FALSE,
+                   ...) {
   #setting default zscale if montereybay is used and tell user about zscale
   argnameschar = unlist(lapply(as.list(sys.call()),as.character))[-1]
   argnames = as.list(sys.call())
@@ -223,12 +237,17 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
   tempmap = tempfile()
   save_png(hillshade,tempmap)
   precomputed = FALSE
-  if(is.list(calculate_normals)) {
-    normals = calculate_normals
-    calculate_normals = TRUE
+  if(is.list(precomputed_normals)) {
+    normals = precomputed_normals
     precomputed = TRUE
   }
-  if(calculate_normals) {
+  if(triangulate && any(is.na(heightmap))) {
+    if(interactive()) {
+      message("`triangulate = TRUE` cannot be currently set if any NA values present--settings `triangulate = FALSE`")
+    }
+    triangulate = FALSE
+  }
+  if(!triangulate) {
     if(!precomputed) {
       normals = calculate_normal(heightmap,zscale=zscale)
     }
@@ -240,15 +259,37 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
                 normal_x = normalsz, normal_y = normalsy, normal_z = -normalsx,
                 texture=paste0(tempmap,".png"),lit=FALSE,ambient = "#000001")
   } else {
-    rgl.surface(x=1:nrow(heightmap)-nrow(heightmap)/2,z=(1:ncol(heightmap)-ncol(heightmap)/2),
-                y=heightmap/zscale,
-                texture=paste0(tempmap,".png"),lit=FALSE,ambient = "#000001")
+    tris = terrainmeshr::triangulate_matrix(heightmap, maxError = max_error, 
+                                            maxTriangles = max_tri, start_index = 0, 
+                                            verbose = verbose)
+    if(!precomputed) {
+      normals = calculate_normal(heightmap,zscale=zscale)
+    }
+    normalsx = as.vector(t(flipud(normals$x[c(-1,-nrow(normals$x)),c(-1,-ncol(normals$x))])))
+    normalsy = as.vector(t(flipud(normals$z[c(-1,-nrow(normals$z)),c(-1,-ncol(normals$z))])))
+    normalsz = as.vector(t(flipud(normals$y[c(-1,-nrow(normals$y)),c(-1,-ncol(normals$y))])))
+    tris[,2] =  tris[,2]/zscale
+    nr = nrow(heightmap)
+    nc = ncol(heightmap)
+    rn = tris[,1]+1
+    cn = tris[,3]+1
+    normals = matrix(c(normalsx[rn + nr*cn],normalsy[rn + nr*cn],normalsz[rn + nr*cn]),ncol=3)
+    texcoords = tris[,c(1,3)]
+    texcoords[,1] = texcoords[,1]/nrow(heightmap)
+    texcoords[,2] = texcoords[,2]/ncol(heightmap)
+    tris[,1] = tris[,1] - nrow(heightmap)/2 +1
+    tris[,3] = tris[,3] - ncol(heightmap)/2
+    tris[,3] = -tris[,3]
+    rgl.triangles(tris, texcoords = texcoords, normals = normals,
+                  texture=paste0(tempmap,".png"),lit=FALSE,ambient = "#000017")
   }
   bg3d(color = background,texture=NULL)
   rgl.viewpoint(zoom=zoom,phi=phi,theta=theta,fov=fov)
   par3d(windowRect = windowsize,...)
-  if(solid) {
-    make_base(heightmap,basedepth=soliddepth,basecolor=solidcolor,zscale=zscale, litbase=litbase)
+  if(solid && !triangulate) {
+    make_base(heightmap,basedepth=soliddepth,basecolor=solidcolor,zscale=zscale)
+  } else if(solid && triangulate) {
+    make_base_triangulated(tris,basedepth=soliddepth,basecolor=solidcolor)
   }
   if(!is.null(solidlinecolor) && solid) {
     rgl::rgl.material(color=solidlinecolor, lit=FALSE)
@@ -267,5 +308,10 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
     }
     rgl::rgl.material(color=waterlinecolor,lit=FALSE)
     make_waterlines(heightmap,waterdepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,alpha=waterlinealpha,linewidth=linewidth,antialias=lineantialias)
+  }
+  if(asp != 1) {
+    height_range = range(heightmap,na.rm=TRUE)/zscale
+    height_scale = height_range[2]-height_range[1]
+    rgl::aspect3d(x = dim(heightmap)[1]/height_scale, y = 1, z = dim(heightmap)[2]*asp/height_scale)
   }
 }

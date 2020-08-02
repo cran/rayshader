@@ -20,6 +20,7 @@ render_highquality(
   text_size = 6,
   text_offset = c(0, 0, 0),
   line_radius = 0.5,
+  point_radius = 0.5,
   scale_text_angle = NULL,
   scale_text_size = 6,
   scale_text_offset = c(0, 0, 0),
@@ -38,6 +39,7 @@ render_highquality(
   camera_interpolate = 1,
   clear = FALSE,
   print_scene_info = FALSE,
+  clamp_value = 10,
   ...
 )
 }
@@ -76,7 +78,9 @@ will specify the absolute angle all the labels are facing. If three angles, this
 
 \item{text_offset}{Default `c(0,0,0)`. Offset to be applied to all text labels.}
 
-\item{line_radius}{Default `0.5`. Radius of the label line segments.}
+\item{line_radius}{Default `0.5`. Radius of line/path segments.}
+
+\item{point_radius}{Default `0.5`. Radius of 3D points (rendered with `render_points()`.}
 
 \item{scale_text_angle}{Default `NULL`. Same as `text_angle`, but for the scale bar.}
 
@@ -119,7 +123,9 @@ and `camera_lookat` vectors.}
 
 \item{print_scene_info}{Default `FALSE`. If `TRUE`, it will print the position and lookat point of the camera.}
 
-\item{...}{Additional parameters to pass to rayrender::render_scene()}
+\item{clamp_value}{Default `10`. See documentation for `rayrender::render_scene()`.}
+
+\item{...}{Additional parameters to pass to `rayrender::render_scene`()}
 }
 \description{
 Renders a raytraced version of the displayed rgl scene, using the `rayrender` package. 
@@ -147,13 +153,13 @@ render_highquality(lightdirection = 45, lightaltitude=10)
 
 #Change the ground material
 \donttest{
-render_highquality(lightdirection = 45, lightaltitude=60, 
+render_highquality(lightdirection = 45, lightaltitude=60,
                   ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"))
 }
 
 #Add three different color lights and a title
 \donttest{
-render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
+render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
                   title_bar_color="white", title_bar_alpha=0.8)
 }
@@ -161,7 +167,7 @@ render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
 #Change the camera:
 \donttest{
 render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
-render_highquality(lightdirection = c(0), 
+render_highquality(lightdirection = c(0),
                   title_bar_color="white", title_bar_alpha=0.8)
 }
 #Add a shiny metal sphere
@@ -185,7 +191,7 @@ render_highquality(lightdirection = c(240), lightaltitude=30,
 \donttest{
 render_camera(theta=45,phi=45,fov=90)
 render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
-                  camera_location = c(50,10,10), camera_lookat = c(0,15,0), 
+                  camera_location = c(50,10,10), camera_lookat = c(0,15,0),
                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
                                    material=rayrender::light(color="red",intensity=10)))
 rgl::rgl.close()

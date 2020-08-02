@@ -41,6 +41,20 @@
 #'@param lambert Default `TRUE`. If raytracing, changes the intensity of the light at each point based proportional to the
 #'dot product of the ray direction and the surface normal at that point. Zeros out all values directed away from
 #'the ray.
+#'@param triangulate Default `FALSE`. Reduce the size of the 3D model by triangulating the height map.
+#'Set this to `TRUE` if generating the model is slow, or moving it is choppy. Will also reduce the size
+#'of 3D models saved to disk.
+#'@param max_error Default `0.001`. Maximum allowable error when triangulating the height map,
+#'when `triangulate = TRUE`. Increase this if you encounter problems with 3D performance, want
+#'to decrease render time with `render_highquality()`, or need 
+#'to save a smaller 3D OBJ file to disk with `save_obj()`,
+#'@param max_tri Default `0`, which turns this setting off and uses `max_error`. 
+#'Maximum number of triangles allowed with triangulating the
+#'height map, when `triangulate = TRUE`. Increase this if you encounter problems with 3D performance, want
+#'to decrease render time with `render_highquality()`, or need 
+#'to save a smaller 3D OBJ file to disk with `save_obj()`,
+#'@param verbose Default `TRUE`, if `interactive()`. Prints information about the mesh triangulation
+#'if `triangulate = TRUE`.
 #'@param reduce_size Default `NULL`. A number between `0` and `1` that specifies how much to reduce the resolution of the plot, for faster plotting. By
 #'default, this just decreases the size of height map, not the image. If you wish the image to be reduced in resolution as well, pass a numeric vector of size 2.
 #'@param multicore Default `FALSE`. If raytracing and `TRUE`, multiple cores will be used to compute the shadow matrix. By default, this uses all cores available, unless the user has
@@ -56,7 +70,7 @@
 #'library(viridis)
 #'
 #'ggdiamonds = ggplot(diamonds, aes(x, depth)) +
-#'  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon", n = 100, bins = 10,contour = TRUE) +
+#'  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon", n = 200, bins = 50,contour = TRUE) +
 #'  facet_wrap(clarity~.) +
 #'  scale_fill_viridis_c(option = "A")
 #'\donttest{
@@ -146,11 +160,15 @@
 #'        zoom = 0.55, theta = -10, phi = 25, scale=300)
 #'render_snapshot(clear = TRUE)
 #'}
+#'
+#'#
 plot_gg = function(ggobj, width = 3, height = 3, 
                    height_aes = NULL, invert = FALSE, shadow_intensity = 0.5,
                    units = c("in", "cm", "mm"), scale=150, pointcontract = 0.7, offset_edges = FALSE,
                    preview = FALSE, raytrace = TRUE, sunangle = 315, anglebreaks = seq(30,40,0.1), 
-                   multicore = FALSE, lambert=TRUE, reduce_size = NULL, save_height_matrix = FALSE, 
+                   multicore = FALSE, lambert=TRUE, triangulate = TRUE,
+                   max_error = 0.001, max_tri = 0, verbose= FALSE,
+                   reduce_size = NULL, save_height_matrix = FALSE, 
                    save_shadow_matrix = FALSE, saved_shadow_matrix=NULL, ...) {
   if(!"ggplot2" %in% rownames(utils::installed.packages())) {
     stop("Must have ggplot2 installed to use plot_gg()")
@@ -221,7 +239,7 @@ plot_gg = function(ggobj, width = 3, height = 3,
     "strip.text.y","strip.switch.pad.grid","strip.switch.pad.wrap","panel.grid.major",
     "title","axis.ticks.length.x","axis.ticks.length.y","axis.ticks.length.x.top",
     "axis.ticks.length.x.bottom","axis.ticks.length.y.left","axis.ticks.length.y.right","axis.title.x.bottom",
-    "axis.text.x.bottom","axis.text.y.left","axis.title.y.left")
+    "axis.text.x.bottom","axis.text.y.left","axis.title.y.left", "aspect.ratio")
   
   key_theme_elements = c("text", "line", "axis.line", "axis.title", 
                          "axis.title.x",
@@ -251,7 +269,7 @@ plot_gg = function(ggobj, width = 3, height = 3,
     "text","unit","unit","line",
     "text","line","line","line",
     "line","line","line","text",
-    "text","text","text")
+    "text","text","text","none")
   black_white_pal = function(x) {
     grDevices::colorRampPalette(c("white", "black"))(255)[x * 254 + 1]
   }
@@ -474,21 +492,23 @@ plot_gg = function(ggobj, width = 3, height = 3,
         theme_bool[tempname] = FALSE
       }
       whichtype = typetheme[which(tempname == colortheme)]
-      if(whichtype %in% c("text","line")) {
-        if(!is.null(ggplotobj2$theme[[i]])) {
-          ggplotobj2$theme[[i]]$colour = "white"
-        }
-      } else if(whichtype == "rect") {
-        if(!(tempname %in% c("panel.border","rect"))) {
+      if(length(whichtype) > 0) {
+        if(whichtype %in% c("text","line")) {
           if(!is.null(ggplotobj2$theme[[i]])) {
             ggplotobj2$theme[[i]]$colour = "white"
-            ggplotobj2$theme[[i]]$fill = "white"
           }
-        } else {
-          ggplotobj2$theme[[i]]$colour = "white"
-          ggplotobj2$theme[[i]]$fill = NA
-        }
-      } 
+        } else if(whichtype == "rect") {
+          if(!(tempname %in% c("panel.border","rect"))) {
+            if(!is.null(ggplotobj2$theme[[i]])) {
+              ggplotobj2$theme[[i]]$colour = "white"
+              ggplotobj2$theme[[i]]$fill = "white"
+            }
+          } else {
+            ggplotobj2$theme[[i]]$colour = "white"
+            ggplotobj2$theme[[i]]$fill = NA
+          }
+        } 
+      }
     }
     if(ggplotobj2$scales$n() > 0) {
       for(i in 1:ggplotobj2$scales$n()) {
@@ -675,12 +695,13 @@ plot_gg = function(ggobj, width = 3, height = 3,
   }
   if(raytrace) {
     if(is.null(saved_shadow_matrix)) {
-      raylayer = ray_shade(1-t(mapheight),maxsearch = 600,sunangle = sunangle,anglebreaks = anglebreaks,
+      raylayer = ray_shade(t(1-mapheight),maxsearch = 600,sunangle = sunangle,anglebreaks = anglebreaks,
                            zscale=1/scale,multicore = multicore,lambert = lambert, ...)
       if(!preview) {
         mapcolor %>%
           add_shadow(raylayer,shadow_intensity) %>%
-          plot_3d((t(1-mapheight)),zscale=1/scale, ... )
+          plot_3d((t(1-mapheight)),zscale=1/scale, triangulate = triangulate,
+                  max_error = max_error, max_tri = max_tri, verbose = verbose, ... )
       } else {
         mapcolor %>%
           add_shadow(raylayer,shadow_intensity) %>%
@@ -691,7 +712,8 @@ plot_gg = function(ggobj, width = 3, height = 3,
       if(!preview) {
         mapcolor %>%
           add_shadow(raylayer,shadow_intensity) %>%
-          plot_3d((t(1-mapheight)),zscale=1/scale, ... )
+          plot_3d((t(1-mapheight)),zscale=1/scale, triangulate = triangulate,
+                  max_error = max_error, max_tri = max_tri, verbose = verbose, ... )
       } else {
         mapcolor %>%
           add_shadow(raylayer,shadow_intensity) %>%
@@ -700,7 +722,8 @@ plot_gg = function(ggobj, width = 3, height = 3,
     }
   } else {
     if(!preview) {
-      plot_3d(mapcolor, (t(1-mapheight)), zscale=1/scale, ...)
+      plot_3d(mapcolor, (t(1-mapheight)), zscale=1/scale, triangulate = triangulate,
+              max_error = max_error, max_tri = max_tri, verbose = verbose, ...)
     } else {
       plot_map(mapcolor, keep_user_par = FALSE)
     }

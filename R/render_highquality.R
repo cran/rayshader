@@ -24,7 +24,8 @@
 #'(relative to the x,y, and z axes) of the text labels.
 #'@param text_size Default `6`. Height of the text.
 #'@param text_offset Default `c(0,0,0)`. Offset to be applied to all text labels.
-#'@param line_radius Default `0.5`. Radius of the label line segments.
+#'@param line_radius Default `0.5`. Radius of line/path segments.
+#'@param point_radius Default `0.5`. Radius of 3D points (rendered with `render_points()`.
 #'@param scale_text_angle Default `NULL`. Same as `text_angle`, but for the scale bar.
 #'@param scale_text_size Default `6`. Height of the scale bar text.
 #'@param scale_text_offset Default `c(0,0,0)`. Offset to be applied to all scale bar text labels.
@@ -48,7 +49,8 @@
 #'@param scene_elements Default `NULL`. Extra scene elements to add to the scene, created with rayrender.
 #'@param clear Default `FALSE`. If `TRUE`, the current `rgl` device will be cleared.
 #'@param print_scene_info Default `FALSE`. If `TRUE`, it will print the position and lookat point of the camera.
-#'@param ... Additional parameters to pass to rayrender::render_scene()
+#'@param clamp_value Default `10`. See documentation for `rayrender::render_scene()`.
+#'@param ... Additional parameters to pass to `rayrender::render_scene`()
 #'@export
 #'@examples
 #'#Render the volcano dataset using pathtracing
@@ -71,13 +73,13 @@
 #'
 #'#Change the ground material
 #'\donttest{
-#'render_highquality(lightdirection = 45, lightaltitude=60, 
+#'render_highquality(lightdirection = 45, lightaltitude=60,
 #'                   ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"))
 #'}
 #'
 #'#Add three different color lights and a title
 #'\donttest{
-#'render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
+#'render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
 #'                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
 #'                   title_bar_color="white", title_bar_alpha=0.8)
 #'}
@@ -85,7 +87,7 @@
 #'#Change the camera:
 #'\donttest{
 #'render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
-#'render_highquality(lightdirection = c(0), 
+#'render_highquality(lightdirection = c(0),
 #'                   title_bar_color="white", title_bar_alpha=0.8)
 #'}
 #'#Add a shiny metal sphere
@@ -109,7 +111,7 @@
 #'\donttest{
 #'render_camera(theta=45,phi=45,fov=90)
 #'render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
-#'                   camera_location = c(50,10,10), camera_lookat = c(0,15,0), 
+#'                   camera_location = c(50,10,10), camera_lookat = c(0,15,0),
 #'                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
 #'                                    material=rayrender::light(color="red",intensity=10)))
 #'rgl::rgl.close()
@@ -117,7 +119,8 @@
 render_highquality = function(filename = NULL, light = TRUE, lightdirection = 315, lightaltitude = 45, lightsize=NULL,
                               lightintensity = 500, lightcolor = "white", obj_material = rayrender::diffuse(),
                               cache_filename=NULL, width = NULL, height = NULL, 
-                              text_angle = NULL, text_size = 6, text_offset = c(0,0,0), line_radius=0.5,
+                              text_angle = NULL, text_size = 6, text_offset = c(0,0,0), 
+                              line_radius=0.5, point_radius = 0.5,
                               scale_text_angle = NULL, scale_text_size = 6, scale_text_offset = c(0,0,0), 
                               title_text = NULL, title_offset = c(20,20), 
                               title_color = "black", title_size = 30, title_font = "sans",
@@ -125,7 +128,7 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
                               ground_material = rayrender::diffuse(), ground_size=100000,scene_elements=NULL, 
                               camera_location = NULL, camera_lookat = c(0,0,0), 
                               camera_interpolate=1, clear  = FALSE, 
-                              print_scene_info = FALSE, ...) {
+                              print_scene_info = FALSE, clamp_value = 10, ...) {
   if(rgl::rgl.cur() == 0) {
     stop("No rgl window currently open.")
   }
@@ -154,6 +157,9 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     }
     cache_filename = paste0(tempdir(), sepval, "temprayfile.obj")
   }
+  surfaceid = get_ids_with_labels(typeval = c("surface", "surface_tris"))
+  surfacevertices = rgl.attrib(surfaceid$id[1], "vertices")
+  surfacerange = range(surfacevertices[,2],na.rm=TRUE)
   shadowid = get_ids_with_labels(typeval = "shadow")
   if(nrow(shadowid) > 0) {
     shadowvertices = rgl.attrib(shadowid$id[1], "vertices")
@@ -168,6 +174,8 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   rotmat = rot_to_euler(rgl::par3d()$userMatrix)
   projmat = rgl::par3d()$projMatrix
   zoom = rgl::par3d()$zoom
+  scalevals = rgl::par3d("scale")
+  
   phi = rotmat[1]
   if(0.001 > abs(abs(rotmat[3]) - 180)) {
     theta = -rotmat[2] + 180
@@ -184,6 +192,7 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   movevec = movevec[1:3]
   observer_radius = rgl::par3d()$observer[3]
   lookvals = rgl::par3d()$bbox
+  lookvals[4] = surfacerange[2]
   if(fov == 0) {
     ortho_dimensions = c(2/projmat[1,1],2/projmat[2,2])
   } else {
@@ -295,6 +304,53 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
       counter = counter + 1
     }
   }
+  pathids = get_ids_with_labels(typeval = "path3d")$id
+  pathline = list()
+  counter = 1
+  for(i in seq_len(length(pathids))) {
+    temp_verts = rgl.attrib(pathids[i], "vertices")
+    temp_color = rgl.attrib(pathids[i], "colors")
+    if(nrow(temp_color) == 1) {
+      temp_color = matrix(temp_color[1:3], byrow = TRUE, ncol = 3, nrow = nrow(temp_verts))
+    }
+    for(j in seq_len(nrow(temp_verts)-1)) {
+      pathline[[counter]] = rayrender::segment(start = temp_verts[j,] - bbox_center, 
+                                                end   = temp_verts[j+1,] - bbox_center,
+                                                radius = line_radius,
+                                                material = rayrender::diffuse(color = temp_color[j,1:3]))
+      counter = counter + 1
+      pathline[[counter]] = rayrender::sphere(x = temp_verts[j,1] - bbox_center[1],
+                                               y = temp_verts[j,2] - bbox_center[2],
+                                               z = temp_verts[j,3] - bbox_center[3],
+                                               radius = line_radius,
+                                               material = rayrender::diffuse(color = temp_color[j,1:3]))
+      counter = counter + 1
+    }
+    pathline[[counter]] = rayrender::sphere(x = temp_verts[nrow(temp_verts),1] - bbox_center[1],
+                                            y = temp_verts[nrow(temp_verts),2] - bbox_center[2],
+                                            z = temp_verts[nrow(temp_verts),3] - bbox_center[3],
+                                            radius = line_radius,
+                                            material = rayrender::diffuse(color = temp_color[nrow(temp_verts),1:3]))
+    counter = counter + 1
+  }
+  pointids = get_ids_with_labels(typeval = "points3d")$id
+  pointlist = list()
+  counter = 1
+  for(i in seq_len(length(pointids))) {
+    temp_verts = rgl.attrib(pointids[i], "vertices")
+    temp_color = rgl.attrib(pointids[i], "colors")
+    if(nrow(temp_color) == 1) {
+      temp_color = matrix(temp_color[1:3], byrow = TRUE, ncol = 3, nrow = nrow(temp_verts))
+    }
+    for(j in seq_len(nrow(temp_verts))) {
+      pointlist[[counter]] = rayrender::sphere(x = temp_verts[j,1] - bbox_center[1],
+                                              y = temp_verts[j,2] - bbox_center[2],
+                                              z = temp_verts[j,3] - bbox_center[3],
+                                              radius = point_radius,
+                                              material = rayrender::diffuse(color = temp_color[j,1:3]))
+      counter = counter + 1
+    }
+  }
   scalelabelids = get_ids_with_labels(typeval = "text_scalebar")$id
   scalelabels = list()
   counter = 1
@@ -346,9 +402,21 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     all_scalelabels = do.call(rbind, scalelabels)
     scene = rayrender::add_object(scene, all_scalelabels)
   }
+  if(length(pathline) > 0) {
+    all_pathline = do.call(rbind, pathline)
+    scene = rayrender::add_object(scene, all_pathline)
+  }
+  if(length(pointlist) > 0) {
+    all_pointlist = do.call(rbind, pointlist)
+    scene = rayrender::add_object(scene, all_pointlist)
+  }
   if(has_shadow) {
     scene = rayrender::add_object(scene, rayrender::xz_rect(zwidth=ground_size,xwidth=ground_size,
                                                             y=shadowdepth-bbox_center[2], material = ground_material))
+  }
+  if(any(round(scalevals,4) != 1)) {
+    scene = rayrender::group_objects(scene, group_scale = scalevals, group_translate = scalevals*bbox_center,
+                                     pivot_point = bbox_center)
   }
   if(light) {
     if(is.null(lightsize)) {
@@ -397,42 +465,25 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   if(has_title) {
     temp = tempfile(fileext = ".png")
     rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=temp,
-                 ortho_dimensions = ortho_dimensions, width = width, height = height, ...)
+                 ortho_dimensions = ortho_dimensions, width = width, height = height, 
+                 clamp_value = clamp_value, ...)
     if(has_title) {
-      if(!("magick" %in% rownames(utils::installed.packages()))) {
-        stop("`magick` package required for adding title")
-      }
-      if(!is.null(title_bar_color)) {
-        title_bar_color = col2rgb(title_bar_color)/255
-        title_bar = array(0,c(width,height,4))
-        title_bar_width = 2 * title_offset[1] + title_size
-        title_bar[1:title_bar_width,,1] = title_bar_color[1]
-        title_bar[1:title_bar_width,,2] = title_bar_color[2]
-        title_bar[1:title_bar_width,,3] = title_bar_color[3]
-        title_bar[1:title_bar_width,,4] = title_bar_alpha
-        title_bar_temp = paste0(tempfile(),".png")
-        png::writePNG(title_bar,title_bar_temp)
-        magick::image_read(temp) %>%
-          magick::image_composite(magick::image_read(title_bar_temp),
-          ) %>%
-          magick::image_write(path = temp, format = "png")
-      }
-      magick::image_read(temp) %>%
-        magick::image_annotate(title_text, 
-                               location = paste0("+", title_offset[1],"+",title_offset[2]),
-                               size = title_size, color = title_color, 
-                               font = title_font) %>%
-        magick::image_write(path = temp, format = "png")
-      tempfileload = png::readPNG(temp)
       if(is.null(filename)) {
-        plot_map(tempfileload)
+        rayimage::add_title(temp, title_text = title_text, title_color = title_color, 
+                            title_font = title_font, title_offset = title_offset, 
+                            title_bar_alpha =  title_bar_alpha, title_bar_color = title_bar_color,
+                            title_size = title_size, preview = TRUE)
       } else {
-        save_png(tempfileload,filename)
+        rayimage::add_title(temp, title_text = title_text, title_color = title_color, 
+                            title_font = title_font, title_offset = title_offset, 
+                            title_bar_alpha =  title_bar_alpha, title_bar_color = title_bar_color,
+                            title_size = title_size, filename = filename)
       }
     }
   } else {
     rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
-                 ortho_dimensions = ortho_dimensions, width = width, height = height, ...)
+                 ortho_dimensions = ortho_dimensions, width = width, height = height, 
+                 clamp_value = clamp_value, ...)
   }
   if(clear) {
     rgl::rgl.clear()
