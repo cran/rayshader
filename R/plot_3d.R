@@ -110,7 +110,7 @@
 plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
                    solid = TRUE, soliddepth="auto", solidcolor="grey20",solidlinecolor="grey30",
                    shadow = TRUE, shadowdepth = "auto", shadowcolor = "grey50", shadowwidth = "auto", 
-                   water = FALSE, waterdepth = 0, watercolor="lightblue", wateralpha = 0.5, 
+                   water = FALSE, waterdepth = 0, watercolor="dodgerblue", wateralpha = 0.5, 
                    waterlinecolor=NULL, waterlinealpha = 1, 
                    linewidth = 2, lineantialias = FALSE,
                    theta=45, phi = 45, fov=0, zoom = 1, background="white", windowsize = 600,
@@ -182,7 +182,7 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
     }
     heightmap[radmat == 0] = NA
   }
-  if(any(hillshade > 1 || hillshade < 0, na.rm = TRUE)) {
+  if(any(hillshade > 1 | hillshade < 0, na.rm = TRUE)) {
     stop("Argument `hillshade` must not contain any entries less than 0 or more than 1")
   }
   flipud = function(x) {
@@ -262,25 +262,25 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
     tris = terrainmeshr::triangulate_matrix(heightmap, maxError = max_error, 
                                             maxTriangles = max_tri, start_index = 0, 
                                             verbose = verbose)
-    if(!precomputed) {
-      normals = calculate_normal(heightmap,zscale=zscale)
-    }
-    normalsx = as.vector(t(flipud(normals$x[c(-1,-nrow(normals$x)),c(-1,-ncol(normals$x))])))
-    normalsy = as.vector(t(flipud(normals$z[c(-1,-nrow(normals$z)),c(-1,-ncol(normals$z))])))
-    normalsz = as.vector(t(flipud(normals$y[c(-1,-nrow(normals$y)),c(-1,-ncol(normals$y))])))
+    # if(!precomputed) {
+    #   normals = calculate_normal(heightmap,zscale=zscale)
+    # }
+    # normalsx = as.vector(t(flipud(normals$x[c(-1,-nrow(normals$x)),c(-1,-ncol(normals$x))])))
+    # normalsy = as.vector(t(flipud(normals$z[c(-1,-nrow(normals$z)),c(-1,-ncol(normals$z))])))
+    # normalsz = as.vector(t(flipud(normals$y[c(-1,-nrow(normals$y)),c(-1,-ncol(normals$y))])))
     tris[,2] =  tris[,2]/zscale
     nr = nrow(heightmap)
     nc = ncol(heightmap)
     rn = tris[,1]+1
     cn = tris[,3]+1
-    normals = matrix(c(normalsx[rn + nr*cn],normalsy[rn + nr*cn],normalsz[rn + nr*cn]),ncol=3)
+    # normal_comp = matrix(c(normalsz[rn + nr*(cn-1)],normalsy[rn + nr*(cn-1)],-normalsx[rn + nr*(cn-1)]),ncol=3)
     texcoords = tris[,c(1,3)]
     texcoords[,1] = texcoords[,1]/nrow(heightmap)
     texcoords[,2] = texcoords[,2]/ncol(heightmap)
     tris[,1] = tris[,1] - nrow(heightmap)/2 +1
     tris[,3] = tris[,3] - ncol(heightmap)/2
     tris[,3] = -tris[,3]
-    rgl.triangles(tris, texcoords = texcoords, normals = normals,
+    rgl.triangles(tris, texcoords = texcoords, #normals = normal_comp,
                   texture=paste0(tempmap,".png"),lit=FALSE,ambient = "#000017")
   }
   bg3d(color = background,texture=NULL)
@@ -304,10 +304,12 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
   if(!is.null(waterlinecolor) && water) {
     if(all(!is.na(heightmap))) {
       rgl::rgl.material(color=waterlinecolor,lit=FALSE)
-      make_lines(fliplr(heightmap),basedepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,linewidth = linewidth,alpha=waterlinealpha,solid=FALSE)
+      make_lines(fliplr(heightmap),basedepth=waterdepth,linecolor=waterlinecolor,
+                 zscale=zscale,linewidth = linewidth,alpha=waterlinealpha,solid=FALSE)
     }
     rgl::rgl.material(color=waterlinecolor,lit=FALSE)
-    make_waterlines(heightmap,waterdepth=waterdepth,linecolor=waterlinecolor,zscale=zscale,alpha=waterlinealpha,linewidth=linewidth,antialias=lineantialias)
+    make_waterlines(heightmap,waterdepth=waterdepth,linecolor=waterlinecolor,
+                    zscale=zscale,alpha=waterlinealpha,linewidth=linewidth,antialias=lineantialias)
   }
   if(asp != 1) {
     height_range = range(heightmap,na.rm=TRUE)/zscale

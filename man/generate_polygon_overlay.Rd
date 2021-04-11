@@ -10,6 +10,7 @@ generate_polygon_overlay(
   heightmap = NULL,
   width = NA,
   height = NA,
+  offset = c(0, 0),
   data_column_fill = NULL,
   linecolor = "black",
   palette = "white",
@@ -28,7 +29,9 @@ overlay automatically.}
 
 \item{height}{Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.}
 
-\item{data_column_fill}{Default `NULL`. The column to map the polygon fill color. If numeric}
+\item{offset}{Default `c(0,0)`. Horizontal and vertical offset to apply to the polygon, in units of `geometry`.}
+
+\item{data_column_fill}{Default `NULL`. The column to map the polygon fill color to.}
 
 \item{linecolor}{Default `black`. Color of the lines.}
 
@@ -40,10 +43,10 @@ this will give a continuous mapping.}
 \item{linewidth}{Default `1`. Line width.}
 }
 \value{
-Semi-transparent overlay with contours.
+Image overlay representing the input polygon data.
 }
 \description{
-Calculates and returns an overlay of contour lines for the current height map.
+Transforms an input `sf` object into an image overlay for the current height map.
 }
 \examples{
 #Plot the counties around Monterey Bay, CA

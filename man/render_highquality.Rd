@@ -21,6 +21,7 @@ render_highquality(
   text_offset = c(0, 0, 0),
   line_radius = 0.5,
   point_radius = 0.5,
+  smooth_line = FALSE,
   scale_text_angle = NULL,
   scale_text_size = 6,
   scale_text_offset = c(0, 0, 0),
@@ -35,7 +36,7 @@ render_highquality(
   ground_size = 1e+05,
   scene_elements = NULL,
   camera_location = NULL,
-  camera_lookat = c(0, 0, 0),
+  camera_lookat = NULL,
   camera_interpolate = 1,
   clear = FALSE,
   print_scene_info = FALSE,
@@ -81,6 +82,9 @@ will specify the absolute angle all the labels are facing. If three angles, this
 \item{line_radius}{Default `0.5`. Radius of line/path segments.}
 
 \item{point_radius}{Default `0.5`. Radius of 3D points (rendered with `render_points()`.}
+
+\item{smooth_line}{Default `FALSE`. If `TRUE`, the line will be rendered with a continuous smooth line, rather
+than straight segments.}
 
 \item{scale_text_angle}{Default `NULL`. Same as `text_angle`, but for the scale bar.}
 
@@ -138,7 +142,7 @@ ground and add additional scene elements.
 volcano \%>\%
  sphere_shade() \%>\%
  plot_3d(volcano,zscale = 2)
-render_highquality()
+render_highquality() 
 }
 
 #Change position of light

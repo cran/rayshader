@@ -25,6 +25,8 @@
 #'@param text_size Default `6`. Height of the text.
 #'@param text_offset Default `c(0,0,0)`. Offset to be applied to all text labels.
 #'@param line_radius Default `0.5`. Radius of line/path segments.
+#'@param smooth_line Default `FALSE`. If `TRUE`, the line will be rendered with a continuous smooth line, rather
+#'than straight segments.
 #'@param point_radius Default `0.5`. Radius of 3D points (rendered with `render_points()`.
 #'@param scale_text_angle Default `NULL`. Same as `text_angle`, but for the scale bar.
 #'@param scale_text_size Default `6`. Height of the scale bar text.
@@ -58,7 +60,7 @@
 #'volcano %>%
 #'  sphere_shade() %>%
 #'  plot_3d(volcano,zscale = 2)
-#'render_highquality()
+#'render_highquality() 
 #'}
 #'
 #'#Change position of light
@@ -120,13 +122,13 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
                               lightintensity = 500, lightcolor = "white", obj_material = rayrender::diffuse(),
                               cache_filename=NULL, width = NULL, height = NULL, 
                               text_angle = NULL, text_size = 6, text_offset = c(0,0,0), 
-                              line_radius=0.5, point_radius = 0.5,
+                              line_radius=0.5, point_radius = 0.5, smooth_line = FALSE,
                               scale_text_angle = NULL, scale_text_size = 6, scale_text_offset = c(0,0,0), 
                               title_text = NULL, title_offset = c(20,20), 
                               title_color = "black", title_size = 30, title_font = "sans",
                               title_bar_color = NULL, title_bar_alpha = 0.5,
                               ground_material = rayrender::diffuse(), ground_size=100000,scene_elements=NULL, 
-                              camera_location = NULL, camera_lookat = c(0,0,0), 
+                              camera_location = NULL, camera_lookat = NULL, 
                               camera_interpolate=1, clear  = FALSE, 
                               print_scene_info = FALSE, clamp_value = 10, ...) {
   if(rgl::rgl.cur() == 0) {
@@ -159,7 +161,44 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   }
   surfaceid = get_ids_with_labels(typeval = c("surface", "surface_tris"))
   surfacevertices = rgl.attrib(surfaceid$id[1], "vertices")
+  polygonid = get_ids_with_labels(typeval = c("polygon3d"))
+  baseid = get_ids_with_labels(typeval = c("base"))
+  if(nrow(polygonid) > 0) {
+    polyrange = c()
+    polyrange_x = c()
+    polyrange_z = c()
+    for(i in seq_len(nrow(polygonid))) {
+      tempverts = range(rgl.attrib(polygonid$id[i], "vertices")[,2])
+      tempverts_x = range(rgl.attrib(polygonid$id[i], "vertices")[,1])
+      tempverts_z = range(rgl.attrib(polygonid$id[i], "vertices")[,3])
+      
+      if(all(!is.na(tempverts))) {
+        polyrange = range(c(tempverts,polyrange))
+      }
+      if(all(!is.na(tempverts_x))) {
+        polyrange_x = range(c(tempverts_x,polyrange_x))
+      }
+      if(all(!is.na(tempverts_z))) {
+        polyrange_z = range(c(tempverts_z,polyrange_z))
+      }
+    }
+  }
+  if(nrow(baseid) > 0) {
+    baserange = c()
+    for(i in seq_len(nrow(baseid))) {
+      tempverts = range(rgl.attrib(baseid$id[i], "vertices")[,2])
+      if(all(!is.na(tempverts))) {
+        baserange = range(c(tempverts,baserange))
+      }
+    }
+  }
   surfacerange = range(surfacevertices[,2],na.rm=TRUE)
+  if(nrow(polygonid) > 0) {
+    surfacerange[2] = range(c(surfacerange,polyrange))[2]
+  }
+  if(nrow(baseid) > 0) {
+    surfacerange[2] = range(c(surfacerange,baserange))[2]
+  }
   shadowid = get_ids_with_labels(typeval = "shadow")
   if(nrow(shadowid) > 0) {
     shadowvertices = rgl.attrib(shadowid$id[1], "vertices")
@@ -201,8 +240,8 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   }
   bbox_center = c(mean(lookvals[1:2]),mean(lookvals[3:4]),mean(lookvals[5:6])) - movevec
   observery = sinpi(phi/180) * observer_radius
-  observerx = cospi(phi/180) * sinpi(theta/180) * observer_radius 
-  observerz = cospi(phi/180) * cospi(theta/180) * observer_radius 
+  observerx = cospi(phi/180) * sinpi(theta/180) * observer_radius
+  observerz = cospi(phi/180) * cospi(theta/180) * observer_radius
   if(is.null(camera_location)) {
     lookfrom = c(observerx, observery, observerz) 
   } else {
@@ -210,6 +249,9 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
   }
   if(length(camera_interpolate) == 1) {
     camera_interpolate = c(camera_interpolate,camera_interpolate)
+  }
+  if(is.null(camera_lookat)) {
+    camera_lookat = c(0,0,0)
   }
   if(all(camera_interpolate != 1)) {
     if(!is.null(camera_location)) {
@@ -231,11 +273,15 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     }
   }
   if(obj_material$type %in% c("diffuse","oren-nayar")) {
-    scene = rayrender::obj_model(cache_filename, x = -bbox_center[1], y = -bbox_center[2],
-                      z = -bbox_center[3], texture = TRUE,
-                      material = obj_material)
+    scene = rayrender::obj_model(cache_filename, 
+                      x = -bbox_center[1],
+                      y = -bbox_center[2],
+                      z = -bbox_center[3],
+                      texture = TRUE, material = obj_material)
   } else {
-    scene = rayrender::obj_model(cache_filename, x = -bbox_center[1], y = -bbox_center[2], 
+    scene = rayrender::obj_model(cache_filename, 
+                      x = -bbox_center[1],
+                      y = -bbox_center[2],
                       z = -bbox_center[3],
                       material = obj_material)
   }
@@ -255,16 +301,6 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     temp_center = rgl.attrib(labelids[i], "centers")
     temp_color = rgl.attrib(labelids[i], "colors")
     for(j in seq_len(nrow(temp_label))) {
-      labelfile = ""
-      if(!no_cache) {
-        labelfile = paste0(temp_label[j,1],".png")
-      } else {
-        labelfile = tempfile(fileext = ".png")
-      }
-      rayimage::add_title(matrix(0,ncol = nchar(temp_label[j,1])*60, nrow=60), 
-                          title_size  = 60,
-                          title_offset = c(0,0),title_text = temp_label, title_color = "white",
-                          title_position = "center", filename = labelfile)
       if(is.null(text_angle)) {
         anglevec = c(rotmat[1],theta,0)
       } else {
@@ -274,12 +310,13 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
           anglevec = text_angle
         }
       }
-      labels[[counter]] = rayrender::xy_rect(x=temp_center[j,1] - bbox_center[1] + text_offset[1], 
+      labels[[counter]] = rayrender::text3d(label=temp_label[j,1],
+                                  x=temp_center[j,1] - bbox_center[1] + text_offset[1], 
                                   y=temp_center[j,2] - bbox_center[2] + text_offset[2], 
                                   z=temp_center[j,3] - bbox_center[3] + text_offset[3],
                                   angle = anglevec,
-                                  xwidth = nchar(temp_label[j,1])*text_size, ywidth = text_size,
-                                  material = rayrender::diffuse(color = temp_color[j,1:3], alpha_texture = labelfile))
+                                  text_height = text_size,
+                                  material = rayrender::diffuse(color = temp_color[j,1:3]))
       counter = counter + 1
     }
   }
@@ -313,25 +350,33 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     if(nrow(temp_color) == 1) {
       temp_color = matrix(temp_color[1:3], byrow = TRUE, ncol = 3, nrow = nrow(temp_verts))
     }
-    for(j in seq_len(nrow(temp_verts)-1)) {
-      pathline[[counter]] = rayrender::segment(start = temp_verts[j,] - bbox_center, 
-                                                end   = temp_verts[j+1,] - bbox_center,
-                                                radius = line_radius,
-                                                material = rayrender::diffuse(color = temp_color[j,1:3]))
+    if(smooth_line) {
+      matrix_center = matrix(bbox_center, byrow=TRUE,ncol=3,nrow = nrow(temp_verts))
+      pathline[[counter]] = rayrender::path(points = temp_verts - matrix_center, 
+                                            width = line_radius * 2,
+                                            material = rayrender::diffuse(color = temp_color[1,1:3]))
       counter = counter + 1
-      pathline[[counter]] = rayrender::sphere(x = temp_verts[j,1] - bbox_center[1],
-                                               y = temp_verts[j,2] - bbox_center[2],
-                                               z = temp_verts[j,3] - bbox_center[3],
-                                               radius = line_radius,
-                                               material = rayrender::diffuse(color = temp_color[j,1:3]))
+    } else {
+      for(j in seq_len(nrow(temp_verts)-1)) {
+        pathline[[counter]] = rayrender::segment(start = temp_verts[j,] - bbox_center, 
+                                                  end   = temp_verts[j+1,] - bbox_center,
+                                                  radius = line_radius,
+                                                  material = rayrender::diffuse(color = temp_color[j,1:3]))
+        counter = counter + 1
+        pathline[[counter]] = rayrender::sphere(x = temp_verts[j,1] - bbox_center[1],
+                                                 y = temp_verts[j,2] - bbox_center[2],
+                                                 z = temp_verts[j,3] - bbox_center[3],
+                                                 radius = line_radius,
+                                                 material = rayrender::diffuse(color = temp_color[j,1:3]))
+        counter = counter + 1
+      }
+      pathline[[counter]] = rayrender::sphere(x = temp_verts[nrow(temp_verts),1] - bbox_center[1],
+                                              y = temp_verts[nrow(temp_verts),2] - bbox_center[2],
+                                              z = temp_verts[nrow(temp_verts),3] - bbox_center[3],
+                                              radius = line_radius,
+                                              material = rayrender::diffuse(color = temp_color[nrow(temp_verts),1:3]))
       counter = counter + 1
     }
-    pathline[[counter]] = rayrender::sphere(x = temp_verts[nrow(temp_verts),1] - bbox_center[1],
-                                            y = temp_verts[nrow(temp_verts),2] - bbox_center[2],
-                                            z = temp_verts[nrow(temp_verts),3] - bbox_center[3],
-                                            radius = line_radius,
-                                            material = rayrender::diffuse(color = temp_color[nrow(temp_verts),1:3]))
-    counter = counter + 1
   }
   pointids = get_ids_with_labels(typeval = "points3d")$id
   pointlist = list()
@@ -415,8 +460,9 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
                                                             y=shadowdepth-bbox_center[2], material = ground_material))
   }
   if(any(round(scalevals,4) != 1)) {
-    scene = rayrender::group_objects(scene, group_scale = scalevals, group_translate = scalevals*bbox_center,
-                                     pivot_point = bbox_center)
+    scene = rayrender::group_objects(scene, 
+                                     group_scale = scalevals, 
+                                     pivot_point = c(0,0,0))
   }
   if(light) {
     if(is.null(lightsize)) {
@@ -456,15 +502,16 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
     }
   }
   if(print_scene_info) {
-    print(paste0(c("Camera position: c(", paste0(lookfrom,collapse=","), 
-                   "), Camera lookat: c(", paste0(camera_lookat,collapse=","), ")"),collapse=""))
+    dist_val = sqrt(sum((camera_lookat - lookfrom)^2))
+    print(sprintf("Camera position: c(%0.2f, %0.2f, %0.2f), Camera Lookat: c(%0.2f, %0.2f, %0.2f) Focal Distance: %0.2f",
+                  lookfrom[1],lookfrom[2],lookfrom[3], camera_lookat[1], camera_lookat[2], camera_lookat[3], dist_val))
   }
   if(!is.null(scene_elements)) {
     scene = rayrender::add_object(scene,scene_elements)
   }
   if(has_title) {
     temp = tempfile(fileext = ".png")
-    rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=temp,
+    debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=temp,
                  ortho_dimensions = ortho_dimensions, width = width, height = height, 
                  clamp_value = clamp_value, ...)
     if(has_title) {
@@ -481,11 +528,12 @@ render_highquality = function(filename = NULL, light = TRUE, lightdirection = 31
       }
     }
   } else {
-    rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
+    debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
                  ortho_dimensions = ortho_dimensions, width = width, height = height, 
                  clamp_value = clamp_value, ...)
   }
   if(clear) {
     rgl::rgl.clear()
   }
+  return(invisible(debug_return))
 }
