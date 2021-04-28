@@ -126,21 +126,24 @@ custom, solid shapes. By default in ggplot2, only the first three shapes are sol
 into 3D.
 }
 \examples{
+if(interactive()) {
 library(ggplot2)
 library(viridis)
+\dontshow{
+options("cores"=2)
+}
 
 ggdiamonds = ggplot(diamonds, aes(x, depth)) +
  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon", n = 200, bins = 50,contour = TRUE) +
  facet_wrap(clarity~.) +
  scale_fill_viridis_c(option = "A")
-\donttest{
-plot_gg(ggdiamonds,multicore=TRUE,width=5,height=5,scale=250,windowsize=c(1400,866),
+\dontrun{
+plot_gg(ggdiamonds,multicore = TRUE,width=5,height=5,scale=250,windowsize=c(1400,866),
        zoom = 0.55, phi = 30)
 render_snapshot()
 }
-
 #Change the camera angle and take a snapshot:
-\donttest{
+\dontrun{
 render_camera(zoom=0.5,theta=-30,phi=30)
 render_snapshot(clear = TRUE)
 }
@@ -158,12 +161,11 @@ ggvolcano = volcano \%>\%
  coord_fixed()
 ggvolcano
 
-\donttest{
+\dontrun{
 plot_gg(ggvolcano, multicore = TRUE, raytrace = TRUE, width = 7, height = 4, 
        scale = 300, windowsize = c(1400, 866), zoom = 0.6, phi = 30, theta = 30)
 render_snapshot(clear = TRUE)
 }
-
 #Here, we will create a 3D plot of the mtcars dataset. This automatically detects 
 #that the user used the `color` aesthetic instead of the `fill`.
 mtplot = ggplot(mtcars) + 
@@ -171,16 +173,14 @@ mtplot = ggplot(mtcars) +
  scale_color_continuous(limits=c(0,8)) 
 
 #Preview how the plot will look by setting `preview = TRUE`: We also adjust the angle of the light.
-\donttest{
+\dontrun{
 plot_gg(mtplot, width=3.5, sunangle=225, preview = TRUE)
 }
-
-\donttest{
+\dontrun{
 plot_gg(mtplot, width=3.5, multicore = TRUE, windowsize = c(1400,866), sunangle=225,
        zoom = 0.60, phi = 30, theta = 45)
 render_snapshot(clear = TRUE)
 }
-
 #Now let's plot a density plot in 3D.
 mtplot_density = ggplot(mtcars) + 
  stat_density_2d(aes(x=mpg,y=disp, fill=..density..), geom = "raster", contour = FALSE) +
@@ -188,38 +188,33 @@ mtplot_density = ggplot(mtcars) +
  scale_y_continuous(expand=c(0,0)) +
  scale_fill_gradient(low="pink", high="red")
 mtplot_density
-
-\donttest{
+\dontrun{
 plot_gg(mtplot_density, width = 4,zoom = 0.60, theta = -45, phi = 30, 
        windowsize = c(1400,866))
 render_snapshot(clear = TRUE)
 }
-
 #This also works facetted.
 mtplot_density_facet = mtplot_density + facet_wrap(~cyl) 
 
 #Preview this plot in 2D:
-\donttest{
+\dontrun{
 plot_gg(mtplot_density_facet, preview = TRUE)
 }
-
-\donttest{
+\dontrun{
 plot_gg(mtplot_density_facet, windowsize=c(1400,866),
        zoom = 0.55, theta = -10, phi = 25)
 render_snapshot(clear = TRUE)
 }
-
 #That is a little cramped. Specifying a larger width will improve the readability of this plot.
-\donttest{
+\dontrun{
 plot_gg(mtplot_density_facet, width = 6, preview = TRUE)
 }
 
 #That's better. Let's plot it in 3D, and increase the scale.
-\donttest{
+\dontrun{
 plot_gg(mtplot_density_facet, width = 6, windowsize=c(1400,866),
        zoom = 0.55, theta = -10, phi = 25, scale=300)
 render_snapshot(clear = TRUE)
 }
-
-#
+}
 }

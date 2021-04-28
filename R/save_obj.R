@@ -9,6 +9,7 @@
 #'@param all_face_fields Default `FALSE`. If `TRUE`, all OBJ face fields (v/vn/vt) will always be written.
 #'@export
 #'@examples
+#'if(interactive()) {
 #'filename_obj = tempfile(fileext = ".obj")
 #'
 #'#Save model of volcano
@@ -35,11 +36,16 @@
 #'save_obj(filename_obj, water_index_refraction = 1.5)
 #'rgl::rgl.close()
 #'}
+#'}
 save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1, 
                     manifold_geometry = FALSE, all_face_fields = FALSE) {
+  if(rgl::rgl.cur() == 0) {
+    stop("No rgl window currently open.")
+  }
   if(is.null(filename)) {
     stop("save_obj requires a filename")
   }
+  noext_filename = tools::file_path_sans_ext(filename)
   if(is.character(filename)) {
     if(save_texture) {
       current_dir = FALSE
@@ -51,20 +57,20 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1,
       }
       if(tools::file_ext(filename) == "obj") {
         if(current_dir) {
-          filename_mtl = paste0(substring(tempbase, 1,nchar(tempbase)-4),".mtl")
+          filename_mtl = sprintf("%s.mtl",tools::file_path_sans_ext(tempbase))
         } else {
-          filename_mtl = paste0(dirname(filename), .Platform$file.sep, substring(tempbase, 1,nchar(tempbase)-4),".mtl")
+          filename_mtl = sprintf("%s%s%s.mtl", dirname(filename), .Platform$file.sep,tools::file_path_sans_ext(tempbase))
         }
       } else {
         if(current_dir) {
-          filename_mtl = paste0(tempbase,".mtl")
+          filename_mtl = sprintf("%s.mtl",tempbase)
         } else {
-          filename_mtl = paste0(dirname(filename), .Platform$file.sep, tempbase,".mtl")
+          filename_mtl = sprintf("%s%s%s.mtl", dirname(filename), .Platform$file.sep, tempbase)
         }
       }
     }
     if(tools::file_ext(filename) != "obj") {
-      filename = paste0(filename,".obj")
+      filename = sprintf("%s.obj",filename)
     }
     con = file(filename, "w")
     on.exit(close(con))
@@ -100,22 +106,20 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1,
   write_mtl = function(idrow, con) {
     if(!is.na(idrow$texture_file)) {
       cat(paste("newmtl ray_surface \n"), file=con)
-      file.copy(idrow$texture_file[[1]], paste0(dirname(filename), .Platform$file.sep , "raysurface.png"), overwrite = TRUE)
-      cat(paste("map_Ka raysurface.png" ,"\n"), file=con)
-      cat(paste("map_Kd raysurface.png" ,"\n"), file=con)
+      file.copy(idrow$texture_file[[1]], sprintf("%s.png",noext_filename), overwrite = TRUE)
+      
+      cat(sprintf("map_Kd %s.png \n",tools::file_path_sans_ext(filename)), file=con)
       cat("\n", file=con)
     } else if (!is.na(idrow$base_color[[1]])) {
       tempcol = col2rgb(idrow$base_color[[1]])/256
       cat(paste("newmtl ray_base"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$water_color[[1]])) {
       tempcol = col2rgb(idrow$water_color[[1]])/256
       cat(paste("newmtl ray_water"), file=con, sep="\n")
       cat(paste("Ns", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat(paste("d", sprintf("%1.4f",idrow$water_alpha[[1]]),collapse = " "), file=con, sep="\n")
       cat(paste("Ni", sprintf("%1.4f",water_index_refraction),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
@@ -123,43 +127,36 @@ save_obj = function(filename, save_texture = TRUE, water_index_refraction = 1,
       tempcol = col2rgb(idrow$north_color[[1]])/256
       cat(paste("newmtl ray_north"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$arrow_color[[1]])) {
       tempcol = col2rgb(idrow$arrow_color[[1]])/256
       cat(paste("newmtl ray_arrow"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$bevel_color[[1]])) {
       tempcol = col2rgb(idrow$bevel_color[[1]])/256
       cat(paste("newmtl ray_bevel"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$background_color[[1]])) {
       tempcol = col2rgb(idrow$background_color[[1]])/256
       cat(paste("newmtl ray_background"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$scalebar1_color[[1]])) {
       tempcol = col2rgb(idrow$scalebar1_color[[1]])/256
       cat(paste("newmtl ray_scalebar1"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$scalebar2_color[[1]])) {
       tempcol = col2rgb(idrow$scalebar2_color[[1]])/256
       cat(paste("newmtl ray_scalebar2"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     } else if (!is.na(idrow$tricolor[[1]])) {
       tempcol = col2rgb(idrow$tricolor[[1]])/256
       cat(paste("newmtl ray_polygon3d"), file=con, sep="\n")
       cat(paste("Kd", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
-      cat(paste("Ka", sprintf("%1.4f %1.4f %1.4f",tempcol[1],tempcol[2],tempcol[3]),collapse = " "), file=con, sep="\n")
       cat("\n", file=con)
     }
   }
