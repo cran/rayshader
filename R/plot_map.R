@@ -23,9 +23,11 @@
 #'@export
 #'@examples
 #'#Plotting the Monterey Bay dataset with bathymetry data
-#'\donttest{
+#'if(rayshader:::run_documentation()) {
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 #'bathy_hs = height_shade(montereybay, texture = water_palette)
+#'#For compass text
+#'par(family = "Arial")
 #'
 #'#Set everything below 0m to water palette
 #'montereybay %>%
@@ -33,12 +35,12 @@
 #'  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, 0, 0))  %>%
 #'  add_shadow(ray_shade(montereybay,zscale=50),0.3) %>%
 #'  plot_map()
-#'
+#'}
 #'#Correcting the aspect ratio for the latitude of Monterey Bay
 #'
 #'extent_mb = attr(montereybay,"extent")
 #'mean_latitude = mean(c(extent_mb@ymax,extent_mb@ymin))
-#'
+#'if(rayshader:::run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(zscale=10) %>%
 #'  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, 0, 0))  %>%
@@ -48,7 +50,7 @@
 plot_map = function(hillshade, rotate=0, asp = 1, 
                     title_text = NA, title_offset = c(20,20),
                     title_color = "black", title_size = 30,
-                    title_font = "sans", title_style = "normal",
+                    title_font = "sans", title_style = "normal", 
                     title_bar_color = NULL, title_bar_alpha = 0.5, title_position = "northwest",
                     keep_user_par = FALSE, ...) {
   if(keep_user_par) {
@@ -56,7 +58,7 @@ plot_map = function(hillshade, rotate=0, asp = 1,
     on.exit(graphics::par(old.par))
   }
   has_title = !is.na(title_text)
-  if(!("rayimage" %in% rownames(utils::installed.packages())) && has_title) {
+  if(!(length(find.package("rayimage", quiet = TRUE)) > 0) && has_title) {
     warning("`rayimage` package required for title text")
     has_title = FALSE
   }
@@ -97,10 +99,7 @@ plot_map = function(hillshade, rotate=0, asp = 1,
                           title_bar_color = title_bar_color, title_bar_alpha = title_bar_alpha, 
                           title_position = title_position)
     }
-    suppressWarnings(raster::plotRGB(raster::brick(hillshade, xmn = 0.5, xmx = dim(hillshade)[2]+ 0.5,
-                                                   ymn = 0.5, ymx = dim(hillshade)[1] + 0.5, ...),scale=1, 
-                                     asp = asp,
-                                     maxpixels=nrow(hillshade)*ncol(hillshade),...))
+    rayimage::plot_image(hillshade, asp = asp, ...)
   } else if(length(dim(hillshade)) == 2) {
     if(number_of_rots != 0) {
       for(j in 1:number_of_rots) {
@@ -115,10 +114,7 @@ plot_map = function(hillshade, rotate=0, asp = 1,
                           title_bar_color = title_bar_color, title_bar_alpha = title_bar_alpha, 
                           title_position = title_position)
     }
-    suppressWarnings(raster::plotRGB(raster::brick(array_from_mat, xmn = 0.5, xmx = dim(array_from_mat)[2] + 0.5,ymn =  0.5, 
-                                                   ymx = dim(array_from_mat)[1] +  0.5, ...),
-                                     asp = asp,
-                                     scale=1, maxpixels=nrow(hillshade)*ncol(hillshade), ...))
+    rayimage::plot_image(array_from_mat, asp = asp, ...)
   } else {
     stop("`hillshade` is neither array nor matrix--convert to either to plot.")
   }

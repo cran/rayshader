@@ -20,7 +20,10 @@ generate_line_overlay(
 \arguments{
 \item{geometry}{An `sf` object with LINESTRING geometry.}
 
-\item{extent}{A `raster::Extent` object with the bounding box for the height map used to generate the original map.}
+\item{extent}{Either an object representing the spatial extent of the scene 
+(either from the `raster`, `terra`, `sf`, or `sp` packages), 
+a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+the previously aforementioned packages) which will be automatically converted to an extent object.}
 
 \item{heightmap}{Default `NULL`. The original height map. Pass this in to extract the dimensions of the resulting 
 overlay automatically.}
@@ -45,13 +48,11 @@ specified in `linewidth`.}
 Semi-transparent overlay with contours.
 }
 \description{
-Calculates and returns an overlay of contour lines for the current height map.
+Calculates and returns an overlay of lines for the current height map.
 }
 \examples{
 #Add the included `sf` object with roads to the montereybay dataset
-#Only run these examples if the `magick` package is installed.
-if ("magick" \%in\% rownames(utils::installed.packages())) {
-\donttest{
+if(rayshader:::run_documentation()) {
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
 montereybay \%>\% 
@@ -61,7 +62,8 @@ montereybay \%>\%
                                    attr(montereybay,"extent"), heightmap = montereybay))  \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0.3) \%>\%
  plot_map()
- 
+}
+if(rayshader:::run_documentation()) {
 #Change the line width, color, and transparency
 montereybay \%>\%
  height_shade() \%>\%
@@ -71,7 +73,8 @@ montereybay \%>\%
                                    alphalayer=0.8)  \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0.3) \%>\%
  plot_map()
- 
+}
+if(rayshader:::run_documentation()) {
 #Manually specify the width and height to improve visual quality of the lines
 montereybay \%>\%
  height_shade() \%>\%
@@ -81,6 +84,5 @@ montereybay \%>\%
                                    attr(montereybay,"extent"), width = 1080, height = 1080),
                                    alphalayer=0.8)  \%>\%
  plot_map()
-}
 }
 }

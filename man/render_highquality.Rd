@@ -22,6 +22,7 @@ render_highquality(
   line_radius = 0.5,
   point_radius = 0.5,
   smooth_line = FALSE,
+  use_extruded_paths = FALSE,
   scale_text_angle = NULL,
   scale_text_size = 6,
   scale_text_offset = c(0, 0, 0),
@@ -39,13 +40,21 @@ render_highquality(
   camera_lookat = NULL,
   camera_interpolate = 1,
   clear = FALSE,
+  return_scene = FALSE,
   print_scene_info = FALSE,
   clamp_value = 10,
+  calculate_consistent_normals = FALSE,
+  load_normals = TRUE,
+  point_material = rayrender::diffuse,
+  point_material_args = list(),
+  path_material = rayrender::diffuse,
+  path_material_args = list(),
+  animation_camera_coords = NULL,
   ...
 )
 }
 \arguments{
-\item{filename}{Filename of saved image. If missing, will display to current device.}
+\item{filename}{Default `NA`. Filename of saved image. If missing, will display to current device.}
 
 \item{light}{Default `TRUE`. Whether there should be a light in the scene. If not, the scene will be lit with a bluish sky.}
 
@@ -86,6 +95,9 @@ will specify the absolute angle all the labels are facing. If three angles, this
 \item{smooth_line}{Default `FALSE`. If `TRUE`, the line will be rendered with a continuous smooth line, rather
 than straight segments.}
 
+\item{use_extruded_paths}{Default `TRUE`. If `FALSE`, paths will be generated with the `rayrender::path()` object, instead
+of `rayrender::extruded_path()`.}
+
 \item{scale_text_angle}{Default `NULL`. Same as `text_angle`, but for the scale bar.}
 
 \item{scale_text_size}{Default `6`. Height of the scale bar text.}
@@ -125,9 +137,33 @@ and `camera_lookat` vectors.}
 
 \item{clear}{Default `FALSE`. If `TRUE`, the current `rgl` device will be cleared.}
 
+\item{return_scene}{Default `FALSE`. If `TRUE`, this will return the rayrender scene (instead of rendering the image).}
+
 \item{print_scene_info}{Default `FALSE`. If `TRUE`, it will print the position and lookat point of the camera.}
 
 \item{clamp_value}{Default `10`. See documentation for `rayrender::render_scene()`.}
+
+\item{calculate_consistent_normals}{Default `FALSE`. Whether to calculate consistent vertex normals to prevent energy 
+loss at edges.}
+
+\item{load_normals}{Default `TRUE`. Whether to load the vertex normals if they exist in the OBJ file.}
+
+\item{point_material}{Default `rayrender::diffuse`. The rayrender material function to be applied
+to point data.}
+
+\item{point_material_args}{Default empty `list()`. The function arguments to `point_material`. 
+The argument `color` will be automatically extracted from the rgl scene, but all other arguments 
+can be specified here.}
+
+\item{path_material}{Default `rayrender::diffuse`. The rayrender material function to be applied
+to path data.}
+
+\item{path_material_args}{Default empty `list()`. The function arguments to `path_material`. 
+The argument `color` will be automatically extracted from the rgl scene, but all other arguments 
+can be specified here.}
+
+\item{animation_camera_coords}{Default `NULL`. Expects camera animation output from either `convert_path_to_animation_coords()`
+or `rayrender::generate_camera_motion()` functions.}
 
 \item{...}{Additional parameters to pass to `rayrender::render_scene`()}
 }
@@ -135,71 +171,78 @@ and `camera_lookat` vectors.}
 Renders a raytraced version of the displayed rgl scene, using the `rayrender` package. 
 User can specify the light direction, intensity, and color, as well as specify the material of the 
 ground and add additional scene elements.
+
+This function can also generate frames for an animation by passing camera animation information from 
+either `convert_path_to_animation_coords()` or `rayrender::generate_camera_motion()` functions.
 }
 \examples{
 #Render the volcano dataset using pathtracing
-if(interactive()) {
-\donttest{
+if(rayshader:::run_documentation()) {
 volcano \%>\%
  sphere_shade() \%>\%
  plot_3d(volcano,zscale = 2)
-render_highquality() 
+render_highquality(min_variance = 0, sample_method = "sobol_blue") 
 }
 
 #Change position of light
-\donttest{
-render_highquality(lightdirection = 45)
+if(rayshader:::run_documentation()) {
+render_highquality(lightdirection = 45, min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change vertical position of light
-\donttest{
-render_highquality(lightdirection = 45, lightaltitude=10)
+if(rayshader:::run_documentation()) {
+render_highquality(lightdirection = 45, lightaltitude = 10, 
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change the ground material
-\donttest{
+if(rayshader:::run_documentation()) {
 render_highquality(lightdirection = 45, lightaltitude=60,
-                  ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"))
+                  ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"),
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Add three different color lights and a title
-\donttest{
+if(rayshader:::run_documentation()) {
 render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
-                  title_bar_color="white", title_bar_alpha=0.8)
+                  title_bar_color="white", title_bar_alpha=0.8,
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change the camera:
-\donttest{
+if(rayshader:::run_documentation()) {
 render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 render_highquality(lightdirection = c(0),
-                  title_bar_color="white", title_bar_alpha=0.8)
+                  title_bar_color="white", title_bar_alpha=0.8,
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 #Add a shiny metal sphere
-\donttest{
+if(rayshader:::run_documentation()) {
 render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
                   lightcolor=c("red","green","blue"),
                   scene_elements = rayrender::sphere(z=-60,y=0,
-                                                     radius=20,material=rayrender::metal()))
+                                                     radius=20,material=rayrender::metal()),
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Add a red light to the volcano and change the ambient light to dusk
-\donttest{
+if(rayshader:::run_documentation()) {
 render_camera(theta=45,phi=45)
 render_highquality(lightdirection = c(240), lightaltitude=30, 
                   lightcolor=c("#5555ff"),
                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
-                                   material=rayrender::light(color="red",intensity=10)))
+                                   material=rayrender::light(color="red",intensity=10)),
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 #Manually change the camera location and direction
-\donttest{
+if(rayshader:::run_documentation()) {
 render_camera(theta=45,phi=45,fov=90)
 render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
                   camera_location = c(50,10,10), camera_lookat = c(0,15,0),
                   scene_elements = rayrender::sphere(z=0,y=15, x=-18, radius=5,
-                                   material=rayrender::light(color="red",intensity=10)))
-rgl::rgl.close()
-}
+                                   material=rayrender::light(color="red",intensity=10)),
+                  min_variance = 0, sample_method = "sobol_blue")
 }
 }

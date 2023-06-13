@@ -1,9 +1,12 @@
 #'@title Generate Line Overlay
 #'
-#'@description Calculates and returns an overlay of contour lines for the current height map.
+#'@description Calculates and returns an overlay of lines for the current height map.
 #'
 #'@param geometry An `sf` object with LINESTRING geometry.
-#'@param extent A `raster::Extent` object with the bounding box for the height map used to generate the original map.
+#'@param extent Either an object representing the spatial extent of the scene 
+#' (either from the `raster`, `terra`, `sf`, or `sp` packages), 
+#' a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+#' the previously aforementioned packages) which will be automatically converted to an extent object. 
 #'@param heightmap Default `NULL`. The original height map. Pass this in to extract the dimensions of the resulting 
 #'overlay automatically.
 #'@param width Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
@@ -19,9 +22,7 @@
 #'@export
 #'@examples
 #'#Add the included `sf` object with roads to the montereybay dataset
-#'#Only run these examples if the `magick` package is installed.
-#'if ("magick" %in% rownames(utils::installed.packages())) {
-#'\donttest{
+#'if(rayshader:::run_documentation()) {
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 #'bathy_hs = height_shade(montereybay, texture = water_palette)
 #'montereybay %>% 
@@ -31,7 +32,8 @@
 #'                                    attr(montereybay,"extent"), heightmap = montereybay))  %>%
 #'  add_shadow(ray_shade(montereybay,zscale=50),0.3) %>%
 #'  plot_map()
-#'  
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the line width, color, and transparency
 #'montereybay %>%
 #'  height_shade() %>%
@@ -41,7 +43,8 @@
 #'                                    alphalayer=0.8)  %>%
 #'  add_shadow(ray_shade(montereybay,zscale=50),0.3) %>%
 #'  plot_map()
-#'  
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Manually specify the width and height to improve visual quality of the lines
 #'montereybay %>%
 #'  height_shade() %>%
@@ -52,12 +55,11 @@
 #'                                    alphalayer=0.8)  %>%
 #'  plot_map()
 #'}
-#'}
 generate_line_overlay = function(geometry, extent, heightmap = NULL,
                                  width=NA, height=NA, 
                                  color = "black", linewidth = 1,  lty = 1,
                                  data_column_width = NULL, offset = c(0,0)) {
-  if(!("sf" %in% rownames(utils::installed.packages()))) {
+  if(!(length(find.package("sf", quiet = TRUE)) > 0)) {
     stop("{sf} package required for generate_line_overlay()")
   }
   if(is.null(extent)) {
@@ -99,11 +101,13 @@ generate_line_overlay = function(geometry, extent, heightmap = NULL,
       stop("`offset` must be of length-2")
     }
   }
+  extent = get_extent(extent)
   tempoverlay = tempfile(fileext = ".png")
   grDevices::png(filename = tempoverlay, width = width, height = height, units="px",bg = "transparent")
   graphics::par(mar = c(0,0,0,0))
-  graphics::plot(base::suppressWarnings(sf::st_geometry(sf_lines_cropped)), xlim = c(extent@xmin,extent@xmax), 
-                 ylim =  c(extent@ymin,extent@ymax), asp=1, lty = lty,
+  graphics::plot(base::suppressWarnings(sf::st_geometry(sf_lines_cropped)), 
+                 xlim = c(extent["xmin"],extent["xmax"]), 
+                 ylim = c(extent["ymin"],extent["ymax"]), asp=1, lty = lty,
                  xaxs = "i", yaxs = "i", lwd = widthvals, col = color)
   grDevices::dev.off() #resets par
   png::readPNG(tempoverlay)

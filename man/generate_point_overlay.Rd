@@ -20,7 +20,10 @@ generate_point_overlay(
 \arguments{
 \item{geometry}{An `sf` object with POINT geometry.}
 
-\item{extent}{A `raster::Extent` object with the bounding box for the height map used to generate the original map.}
+\item{extent}{Either an object representing the spatial extent of the scene 
+(either from the `raster`, `terra`, `sf`, or `sp` packages), 
+a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+the previously aforementioned packages) which will be automatically converted to an extent object.}
 
 \item{heightmap}{Default `NULL`. The original height map. Pass this in to extract the dimensions of the resulting 
 overlay automatically.}
@@ -56,8 +59,7 @@ Calculates and returns an overlay of points for the current map.
 }
 \examples{
 #Add the included `sf` object with roads to the montereybay dataset
-\donttest{
-if(all(c("sf","magick") \%in\% rownames(utils::installed.packages()))) {
+if(rayshader:::run_documentation()) {
  monterey_city = sf::st_sfc(sf::st_point(c(-121.893611, 36.603056)))
  montereybay \%>\% 
    height_shade() \%>\%
@@ -65,7 +67,5 @@ if(all(c("sf","magick") \%in\% rownames(utils::installed.packages()))) {
                                    attr(montereybay,"extent"), heightmap = montereybay))  \%>\%
    add_shadow(ray_shade(montereybay,zscale=50),0.3) \%>\%
    plot_map()
- 
-}
 }
 }

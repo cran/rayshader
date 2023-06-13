@@ -6,8 +6,11 @@
 #'(i.e. is in lat/long coordinates) this function will use the `geosphere` package to create a 
 #'scale bar of the proper length.
 #'
-#'@param extent A `raster::Extent` object with the bounding box for the height map used to generate the original map. If this is in
-#'lat/long coordinates, be sure to set `latlong = TRUE`.
+#'@param extent Either an object representing the spatial extent of the scene 
+#' (either from the `raster`, `terra`, `sf`, or `sp` packages), 
+#' a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+#' the previously aforementioned packages) which will be automatically converted to an extent object. If this is in
+#' lat/long coordinates, be sure to set `latlong = TRUE`.
 #'@param length The length of the scale bar, in `units`. This should match the units used on the map, 
 #'unless `extent` uses lat/long coordinates. In that case, the distance should be in meters.
 #'@param x Default `0.05`. The x-coordinate of the bottom-left corner of the scale bar, as a proportion of the full map width. 
@@ -48,12 +51,12 @@
 #'@return Semi-transparent overlay with a scale bar.
 #'@export
 #'@examples
-#'#Only run these examples if the `magick` package is installed.
-#'if ("magick" %in% rownames(utils::installed.packages())) {
-#'\donttest{
+#'if(rayshader:::run_documentation()) {
 #'#Create the water palette
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 #'bathy_hs = height_shade(montereybay, texture = water_palette)
+#'#Set scalebar font
+#'par(family = "Arial")
 #'
 #'#Generate flat water heightmap
 #'mbay = montereybay
@@ -73,8 +76,8 @@
 #'                                       heightmap = montereybay, 
 #'                                       latlong=TRUE)) %>%
 #' plot_map()
-#'
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the text color
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -82,8 +85,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the length
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -91,7 +94,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the thickness (default is length/20)
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -99,7 +103,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the text offset (given in multiples of thickness)
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -108,7 +113,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the primary and secondary colors, along with the border and tick color
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -118,7 +124,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Add a halo
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -126,7 +133,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'
+#'}
+#'if(rayshader:::run_documentation()) {
 #'#Change the orientation, position, text alignment, and flip the ticks to the other side
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000, x = 0.07,
@@ -135,8 +143,8 @@
 #'                                        heightmap = montereybay, 
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
-#'  
-#'  
+#'}
+##'if(rayshader:::run_documentation()) { 
 #'#64373.8 meters in 40 miles
 #'#Create custom labels, change font and text size, remove the border/ticks, and change the color
 #'#Here, we specify a width and height to double the resolution of the image (for sharper text)
@@ -153,7 +161,6 @@
 #'                                        latlong=TRUE), rescale_original=TRUE) %>%
 #'  plot_map()
 #'}
-#'}
 generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05, 
                                      latlong = FALSE, thickness = NA,
                                      bearing=90, unit="m", flip_ticks = FALSE,
@@ -167,11 +174,15 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
                                      halo_color = NA, halo_expand = 1,
                                      halo_alpha = 1, halo_offset = c(0,0), halo_blur = 1) {
   loc = rep(0,2)
-  loc[1] = x * (extent[2]-extent[1]) + extent[1]
-  loc[2] = y * (extent[4]-extent[3]) + extent[3]
+  extent = get_extent(extent)
+  xdiff = extent["xmax"]-extent["xmin"]
+  ydiff = extent["ymax"]-extent["ymin"]
   
-  halo_offset[1] = halo_offset[1] * (extent[2]-extent[1])
-  halo_offset[2] = halo_offset[2] * (extent[4]-extent[3])
+  loc[1] = x * xdiff + extent["xmin"]
+  loc[2] = y * ydiff + extent["ymin"]
+  
+  halo_offset[1] = halo_offset[1] * xdiff
+  halo_offset[2] = halo_offset[2] * ydiff
   
   if(is.na(height)) {
     height  = ncol(heightmap)
@@ -192,7 +203,7 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
   text_list = list()
   
   if(latlong) {
-    if(!("geosphere" %in% rownames(utils::installed.packages()))) {
+    if(!(length(find.package("geosphere", quiet = TRUE)) > 0)) {
       stop("{geosphere} package required for generate_scalebar_overlay() using lat/long coordinates")
     }
     length_val = length /4
@@ -301,8 +312,10 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
   tempoverlay = tempfile(fileext = ".png")
   grDevices::png(filename = tempoverlay, width = width, height = height, units="px",bg = "transparent")
   graphics::par(mar = c(0,0,0,0))
-  graphics::plot(x=c(extent[1],extent[3]),y=c(extent[2],extent[4]), xlim = c(extent[1],extent[2]),
-                 ylim =  c(extent[3],extent[4]), pch = 0,bty="n",axes=FALSE,
+  graphics::plot(x=c(extent["xmin"],extent["ymin"]),y=c(extent["xmax"],extent["ymax"]), 
+                 xlim = c(extent["xmin"],extent["xmax"]), 
+                 ylim = c(extent["ymin"],extent["ymax"]), 
+                 pch = 0,bty="n",axes=FALSE,
                  xaxs = "i", yaxs = "i", cex = 0, col = NA)
   
   cols <- rep(c(color1,color2),2)
@@ -330,14 +343,15 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
   grDevices::dev.off() #resets par
   overlay_temp = png::readPNG(tempoverlay)
   if(!is.na(halo_color)) {
-    if(!("rayimage" %in% rownames(utils::installed.packages()))) {
+    if(!(length(find.package("rayimage", quiet = TRUE)) > 0)) {
       stop("{rayimage} package required for `halo_color`")
     }
     tempoverlay = tempfile(fileext = ".png")
     grDevices::png(filename = tempoverlay, width = width, height = height, units="px",bg = "transparent")
     graphics::par(mar = c(0,0,0,0))
-    graphics::plot(x=c(extent[1],extent[3]),y=c(extent[2],extent[4]), xlim = c(extent[1],extent[2]),
-         ylim =  c(extent[3],extent[4]), pch = 0,bty="n",axes=FALSE,
+    graphics::plot(x=c(extent["xmin"],extent["ymin"]),y=c(extent["xmax"],extent["ymax"]), 
+                   xlim = c(extent["xmin"],extent["xmax"]), 
+                   ylim = c(extent["ymin"],extent["ymax"]),  pch = 0,bty="n",axes=FALSE,
          xaxs = "i", yaxs = "i", cex = 0, col = NA)
     
     cols <- rep(c(color1,color2),2)

@@ -26,26 +26,42 @@ make_water = function(heightmap,waterheight=mean(heightmap),watercolor="lightblu
       fullsides = fullsides[nrow(fullsides):1,]
     } 
     if(all(!na_matrix)) {
-      triangles3d(matrix(c(-nrow(heightmap)/2+1, nrow(heightmap)/2, -nrow(heightmap)/2+1,
-                           waterheight,waterheight,waterheight,
-                           ncol(heightmap)/2,-ncol(heightmap)/2+1,-ncol(heightmap)/2+1),3,3), lit=FALSE,
-                  color=watercolor,alpha=wateralpha,front="filled",back="culled",texture=NULL,ambient = "#000003")
-      triangles3d(matrix(c(-nrow(heightmap)/2+1, nrow(heightmap)/2, nrow(heightmap)/2,
-                           waterheight,waterheight,waterheight,
-                           ncol(heightmap)/2,ncol(heightmap)/2,-ncol(heightmap)/2+1),3,3), lit=FALSE,
-                  color=watercolor,alpha=wateralpha,front="filled",back="culled",texture=NULL,ambient = "#000003")
+      vertices = rbind(matrix(c(-nrow(heightmap)/2+1, nrow(heightmap)/2, -nrow(heightmap)/2+1,
+                                waterheight,waterheight,waterheight,
+                                ncol(heightmap)/2,-ncol(heightmap)/2+1,-ncol(heightmap)/2+1), 
+                              nrow = 3L, ncol = 3L),
+                       matrix(c(-nrow(heightmap)/2+1, nrow(heightmap)/2, nrow(heightmap)/2,
+                                waterheight,waterheight,waterheight,
+                                ncol(heightmap)/2,ncol(heightmap)/2,-ncol(heightmap)/2+1), 
+                              nrow = 3L, ncol = 3L))
+      indices = 1L:6L
+      rgl::triangles3d(x = vertices,
+                       indices = indices,
+                       color=watercolor,alpha=wateralpha, lit = FALSE,
+                       front="filled",back="culled",texture=NULL,tag = "water")
       if(length(heightlist) > 0) {
-        rgl::triangles3d(fullsides,lit=FALSE,color=watercolor,alpha=wateralpha,front="fill",depth_test="less",texture=NULL,ambient = "#000003")
+        indices = 1L:nrow(fullsides)
+        rgl::triangles3d(fullsides, indices = indices,
+                         lit=FALSE,color=watercolor,alpha=wateralpha,
+                         front="fill",back="culled",depth_test="less",texture=NULL,tag = "water")
       }
     } else {
       if(length(heightlist) > 0) {
-        rgl::triangles3d(fullsides,lit=FALSE,color=watercolor,alpha=wateralpha,front="fill",
-                         texture=NULL,ambient = "#000003")
+        indices = 1L:nrow(fullsides)
+        rgl::triangles3d(fullsides,indices = indices,
+                         lit=FALSE,color=watercolor,alpha=wateralpha,front="fill",back="culled",
+                         texture=NULL,tag = "water")
       }
+      
       basemat = matrix(waterheight,nrow(heightmap),ncol(heightmap))
       basemat[is.na(heightmap)] = NA
-      rgl.surface(1:nrow(basemat)-nrow(basemat)/2,1:ncol(basemat)-ncol(basemat)/2,basemat,color=watercolor,alpha=wateralpha,
-                  lit=FALSE,texture=NULL,ambient = "#000003")
+      ray_surface = generate_surface(basemat, zscale = 1)
+      
+      rgl::triangles3d(x = ray_surface$verts, 
+                       indices = ray_surface$inds, 
+                       texcoords = ray_surface$texcoords, 
+                       color=watercolor,alpha=wateralpha, back="culled", front="fill",
+                       lit=FALSE,texture=NULL,tag = "water")
     }
   }
 }

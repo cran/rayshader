@@ -20,7 +20,10 @@ generate_polygon_overlay(
 \arguments{
 \item{geometry}{An `sf` object with POLYGON geometry.}
 
-\item{extent}{A `raster::Extent` object with the bounding box for the height map used to generate the original map.}
+\item{extent}{Either an object representing the spatial extent of the scene 
+(either from the `raster`, `terra`, `sf`, or `sp` packages), 
+a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+the previously aforementioned packages) which will be automatically converted to an extent object.}
 
 \item{heightmap}{Default `NULL`. The original height map. Pass this in to extract the dimensions of the resulting 
 overlay automatically.}
@@ -50,13 +53,12 @@ Transforms an input `sf` object into an image overlay for the current height map
 }
 \examples{
 #Plot the counties around Monterey Bay, CA
-#Only run these examples if the `magick` package is installed.
-if ("magick" \%in\% rownames(utils::installed.packages())) {
-\donttest{
+if(rayshader:::run_documentation()) {
 generate_polygon_overlay(monterey_counties_sf, palette = rainbow, 
                         extent = attr(montereybay,"extent"), heightmap = montereybay) \%>\%
  plot_map() 
-
+}
+if(rayshader:::run_documentation()) {
 #These counties include the water, so we'll plot bathymetry data over the polygon
 #data to only include parts of the polygon that fall on land.
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
@@ -66,7 +68,8 @@ generate_polygon_overlay(monterey_counties_sf, palette = rainbow,
                         extent = attr(montereybay,"extent"), heightmap = montereybay) \%>\%
  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, start_transition = 0)) \%>\%
  plot_map()
-
+}
+if(rayshader:::run_documentation()) {
 #Add a semi-transparent hillshade and change the palette, and remove the polygon lines
 montereybay \%>\%
  sphere_shade(texture = "bw") \%>\%
@@ -77,7 +80,8 @@ montereybay \%>\%
  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, start_transition = 0)) \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0) \%>\%
  plot_map()
-
+}
+if(rayshader:::run_documentation()) {
 #Map one of the variables in the sf object and use an explicitly defined color palette
 county_palette = c("087" = "red",    "053" = "blue",   "081" = "green", 
                   "069" = "yellow", "085" = "orange", "099" = "purple") 
@@ -91,6 +95,5 @@ montereybay \%>\%
  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, start_transition = 0)) \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0.5) \%>\%
  plot_map()
-}
 }
 }

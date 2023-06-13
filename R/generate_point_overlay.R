@@ -3,7 +3,10 @@
 #'@description Calculates and returns an overlay of points for the current map.
 #'
 #'@param geometry An `sf` object with POINT geometry.
-#'@param extent A `raster::Extent` object with the bounding box for the height map used to generate the original map.
+#'@param extent Either an object representing the spatial extent of the scene 
+#' (either from the `raster`, `terra`, `sf`, or `sp` packages), 
+#' a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+#' the previously aforementioned packages) which will be automatically converted to an extent object. 
 #'@param heightmap Default `NULL`. The original height map. Pass this in to extract the dimensions of the resulting 
 #'overlay automatically.
 #'@param width Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
@@ -26,8 +29,7 @@
 #'@export
 #'@examples
 #'#Add the included `sf` object with roads to the montereybay dataset
-#'\donttest{
-#'if(all(c("sf","magick") %in% rownames(utils::installed.packages()))) {
+#'if(rayshader:::run_documentation()) {
 #'  monterey_city = sf::st_sfc(sf::st_point(c(-121.893611, 36.603056)))
 #'  montereybay %>% 
 #'    height_shade() %>%
@@ -35,13 +37,11 @@
 #'                                    attr(montereybay,"extent"), heightmap = montereybay))  %>%
 #'    add_shadow(ray_shade(montereybay,zscale=50),0.3) %>%
 #'    plot_map()
-#'  
-#'}
 #'}
 generate_point_overlay = function(geometry, extent, heightmap = NULL,
                                   width=NA, height=NA, pch = 20,  
                                   color = "black", size = 1, offset = c(0,0), data_column_width = NULL) {
-  if(!("sf" %in% rownames(utils::installed.packages()))) {
+  if(!(length(find.package("sf", quiet = TRUE)) > 0)) {
     stop("{sf} package required for generate_line_overlay()")
   }
   if(is.null(extent)) {
@@ -83,11 +83,13 @@ generate_point_overlay = function(geometry, extent, heightmap = NULL,
       stop("`offset` must be of length-2")
     }
   }
+  extent = get_extent(extent)
   tempoverlay = tempfile(fileext = ".png")
   grDevices::png(filename = tempoverlay, width = width, height = height, units="px",bg = "transparent")
   graphics::par(mar = c(0,0,0,0))
-  graphics::plot(base::suppressWarnings(sf::st_geometry(sf_point_cropped)), xlim = c(extent@xmin,extent@xmax), 
-                 ylim =  c(extent@ymin,extent@ymax), asp=1, pch = pch,
+  graphics::plot(base::suppressWarnings(sf::st_geometry(sf_point_cropped)), 
+                 xlim = c(extent["xmin"],extent["xmax"]), 
+                 ylim = c(extent["ymin"],extent["ymax"]), asp=1, pch = pch,
                  xaxs = "i", yaxs = "i", lwd = widthvals, col = color)
   grDevices::dev.off() #resets par
   png::readPNG(tempoverlay)

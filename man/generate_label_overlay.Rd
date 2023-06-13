@@ -31,7 +31,10 @@ generate_label_overlay(
 \arguments{
 \item{labels}{A character vector of labels, or an `sf` object with `POINT` geometry and a column for labels.}
 
-\item{extent}{A `raster::Extent` object with the bounding box for the height map used to generate the original map.}
+\item{extent}{Either an object representing the spatial extent of the scene 
+(either from the `raster`, `terra`, `sf`, or `sp` packages), 
+a length-4 numeric vector specifying `c("xmin", "xmax","ymin","ymax")`, or the spatial object (from 
+the previously aforementioned packages) which will be automatically converted to an extent object.}
 
 \item{x}{Default `NULL`. The x-coordinate, if `labels` is not an `sf` object.}
 
@@ -87,17 +90,17 @@ of this color.}
 Semi-transparent overlay with labels.
 }
 \description{
-This uses the `maptools::placeLabel()` function to generate labels for the given scene. Either
+This uses the `car::placeLabel()` function to generate labels for the given scene. Either
 use an `sf` object or manually specify the x/y coordinates and label.
 }
 \examples{
 #Add the included `sf` object with roads to the montereybay dataset
-#Only run these examples if the `magick` package is installed.
-if ("magick" \%in\% rownames(utils::installed.packages())) {
-\donttest{
+if(rayshader:::run_documentation()) {
 #Create the water palette
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
+#Set label font
+par(family = "Arial")
 
 #We're plotting the polygon data here for counties around Monterey Bay. We'll first
 #plot the county names at the polygon centroids.
@@ -112,7 +115,8 @@ bathy_hs \%>\%
                                     extent= attr(montereybay,"extent"), heightmap = montereybay,
                                     seed=1))  \%>\%
  plot_map()
-
+}
+if(rayshader:::run_documentation()) {
 #It's hard to read these values, so we'll add a white halo.
 bathy_hs \%>\% 
  add_shadow(lamb_shade(montereybay,zscale=50),0.3) \%>\%
@@ -126,8 +130,8 @@ bathy_hs \%>\%
                                     halo_color = "white", halo_expand = 3,
                                     seed=1))  \%>\%
  plot_map()
-
-
+}
+if(rayshader:::run_documentation()) {
 #Plot the actual town locations, using the manual plotting interface instead of the `sf` object
 montereybay \%>\%
  height_shade() \%>\%
@@ -141,7 +145,8 @@ montereybay \%>\%
                                     halo_color = "white", halo_expand = 3,
                                     seed=1))  \%>\%
  plot_map()
-
+}
+if(rayshader:::run_documentation()) {
 #Adding a softer blurred halo
 montereybay \%>\%
  height_shade() \%>\%
@@ -155,7 +160,8 @@ montereybay \%>\%
                                     halo_color = "white", halo_expand = 3, halo_blur=10,
                                     seed=1))  \%>\%
  plot_map()
- 
+}
+if(rayshader:::run_documentation()) {
 #Changing the seed changes the locations of the labels
 montereybay \%>\%
  height_shade() \%>\%
@@ -169,6 +175,5 @@ montereybay \%>\%
                                     halo_color = "white", halo_expand = 3, halo_blur=10,
                                     seed=2))  \%>\%
  plot_map()
-}
 }
 }
