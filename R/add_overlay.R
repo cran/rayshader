@@ -17,7 +17,7 @@
 #'@export
 #'@examples
 #'#Combining base R plotting with rayshader's spherical color mapping and raytracing:
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'   sphere_shade() %>%
 #'   add_overlay(height_shade(montereybay),alphalayer = 0.6)  %>%
@@ -25,7 +25,7 @@
 #'   plot_map()
 #'}
 #'
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Add contours with `generate_contour_overlay()`
 #'montereybay %>%
 #'   height_shade() %>%
@@ -33,7 +33,7 @@
 #'   add_shadow(ray_shade(montereybay,zscale=50)) %>%
 #'   plot_map()
 #'}
-add_overlay = function(hillshade, overlay, alphalayer = 1, alphacolor=NULL, 
+add_overlay = function(hillshade = NULL, overlay = NULL, alphalayer = 1, alphacolor=NULL, 
                        alphamethod = "max", rescale_original = FALSE) {
   if(any(alphalayer > 1 || alphalayer < 0)) {
     stop("Argument `alphalayer` must not be less than 0 or more than 1")
@@ -75,6 +75,12 @@ add_overlay = function(hillshade, overlay, alphalayer = 1, alphacolor=NULL,
     temp_over = overlay[,,4]
     temp_over[alphalayer1] = 0
     overlay[,,4] = temp_over
+  }
+  if(is.null(hillshade)) {
+    return(overlay)
+  }
+  if(is.null(overlay)) {
+    return(hillshade)
   }
   if(length(dim(hillshade)) == 2) {
     rayimage::add_image_overlay(fliplr(t(hillshade)),overlay,alpha=alphalayer, rescale_original = rescale_original)

@@ -102,7 +102,7 @@ system defined by the extent object. If no altitude is provided, the path will b
 above the heightmap. If the path goes off the edge, the nearest height on the heightmap will be used.
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Starting at Moss Landing in Monterey Bay, we are going to simulate a flight of a bird going
 #out to sea and diving for food.
 
@@ -138,7 +138,7 @@ render_path(extent = attr(montereybay,"extent"),
            altitude = z_out, zscale=50,color="white", antialias=TRUE)
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #We'll set the altitude to right above the water to give the tracks a "shadow".
 render_path(extent = attr(montereybay,"extent"), 
            lat = unlist(bird_track_lat), long = unlist(bird_track_long), 
@@ -147,7 +147,7 @@ render_camera(theta=30,phi=35,zoom=0.45,fov=70)
 render_snapshot()
 }
 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Remove the path:
 render_path(clear_previous=TRUE)
 
@@ -157,28 +157,30 @@ render_path(clear_previous=TRUE)
 t = seq(0,2*pi,length.out=1000)
 circle_coords_lat = moss_landing_coord[1] + 0.5 * t/8 * sin(t*6)
 circle_coords_long = moss_landing_coord[2] + 0.5 * t/8 *  cos(t*6)
-render_path(extent = attr(montereybay,"extent"), heightmap = montereybay,
+render_path(extent = attr(montereybay,"extent"), heightmap = montereybay, 
            lat = unlist(circle_coords_lat), long = unlist(circle_coords_long), 
            zscale=50, color="red", antialias=TRUE,offset=100, linewidth=5)
 render_camera(theta = 160, phi=33, zoom=0.4, fov=55)
 render_snapshot()
 }
 
-if(rayshader:::run_documentation()) {
-#And all of these work with `render_highquality()`
+if(run_documentation()) {
+#And all of these work with `render_highquality()`. Here, I set `use_extruded_paths = TRUE`
+#to get thick continuous paths.
 render_highquality(clamp_value=10, line_radius=3, min_variance = 0,
+                  use_extruded_paths = TRUE,
                   sample_method = "sobol_blue", samples = 128)
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #We can also change the material of the objects by setting the `point_material` and
 #`point_material_args` arguments in `render_highquality()`
 render_highquality(clamp_value=10, line_radius=3, min_variance = 0,
                   sample_method = "sobol_blue", samples = 128,
-                  path_material = rayrender::glossy, 
+                  path_material = rayrender::glossy,  use_extruded_paths = TRUE,
                   path_material_args = list(gloss = 0.5, reflectance = 0.2))
 }
 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #For transmissive materials (like `dielectric`), we should specify that the path
 #should be rendered with an extruded path. We'll use the `attenuation` argument in 
 #the `dielectric` function to specify a realistic glass color.

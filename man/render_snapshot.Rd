@@ -21,7 +21,6 @@ render_snapshot(
   vignette_radius = 1.3,
   instant_capture = interactive(),
   bring_to_front = FALSE,
-  keep_user_par = FALSE,
   webshot = FALSE,
   width = NULL,
   height = NULL,
@@ -36,7 +35,8 @@ render_snapshot(
   line_offset = 1e-07,
   thick_lines = TRUE,
   line_radius = 0.5,
-  cache_filename = NULL,
+  cache_scene = FALSE,
+  reset_scene_cache = FALSE,
   new_page = TRUE,
   print_scene_info = FALSE,
   fsaa = 1,
@@ -86,9 +86,6 @@ before taking the snapshot. This can help stop prevent rendering issues when run
 
 \item{bring_to_front}{Default `FALSE`. Whether to bring the window to the front when taking the snapshot.}
 
-\item{keep_user_par}{Default `TRUE`. Whether to keep the user's `par()` settings. Set to `FALSE` if you 
-want to set up a multi-pane plot (e.g. set `par(mfrow)`).}
-
 \item{webshot}{Default `FALSE`. Set to `TRUE` to have rgl use the `webshot2` package to take images,
 which can be used when `rgl.useNULL = TRUE`.}
 
@@ -99,8 +96,7 @@ width when `software_render = TRUE`..}
 height when `software_render = TRUE`.}
 
 \item{software_render}{Default `FALSE`. If `TRUE`, rayshader will use the rayvertex package to render the snapshot, which
-is not constrained by the screen size or requires OpenGL. 
-Consider settings a `cache_filename` so a new OBJ file doesn't have to be written with every snapshot.}
+is not constrained by the screen size or requires OpenGL.}
 
 \item{camera_location}{Default `NULL`. Custom position of the camera. The `FOV`, `width`, and `height` arguments will still
 be derived from the rgl window.}
@@ -128,7 +124,10 @@ render the lines using a single-pixel anti-aliased line algorithm.}
 
 \item{line_radius}{Default `0.5`. The radius of the thick cylinders if `thick_lines = TRUE` and `software_render = TRUE`.}
 
-\item{cache_filename}{Default `NULL`. Name of temporary filename to store OBJ file, if the user does not want to rewrite the file each time.}
+\item{cache_scene}{Default `FALSE`. Whether to cache the current scene to memory so it does not have to be converted to a `raymesh` object 
+each time `render_snapshot()` is called. If `TRUE` and a scene has been cached, it will be used when rendering.}
+
+\item{reset_scene_cache}{Default `FALSE`. Resets the scene cache before rendering.}
 
 \item{new_page}{Default `TRUE`. Whether to call `grid::grid.newpage()` before plotting the image.}
 
@@ -155,18 +154,18 @@ Displays snapshot of current rgl plot (or saves to disk).
 Either captures the current rgl view and displays, or saves the current view to disk.
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade() \%>\%
  plot_3d(montereybay,zscale=50,zoom=0.6,theta=-90,phi=30)
 }
  
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_snapshot()
 }
  
 #Create a title
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_snapshot(title_text = "Monterey Bay, California", title_offset=c(0,20),
                title_color = "white", title_bar_color = "black",
                title_font = "Helvetica", title_position = "north")
@@ -179,18 +178,18 @@ render_snapshot(title_text = "Monterey Bay, California",
                title_font = "Helvetica", title_position = "north")
 }
 #Use software rendering to render a scene with shadow mapping
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay |> 
  height_shade() |> 
  plot_3d(montereybay, shadow=FALSE, solidlinecolor = NULL)
 #No shadows
 render_snapshot(software_render = TRUE)
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Now with shadow mapped shadows, calculated in rayvertex
 render_snapshot(rayvertex_lighting = TRUE, 
-               rayvertex_lights = rayvertex::directional_light(intensity = 2.5, 
-                                                               direction = c(-1, 0.8, -1)), 
+               rayvertex_lights = rayvertex::directional_light(intensity = 1.2, 
+                                                               direction = c(-1, 1, -1)), 
                rayvertex_shadow_map = TRUE, software_render = TRUE)
 }
 }

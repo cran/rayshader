@@ -35,8 +35,6 @@ load_image = function(image, reorient) {
 
 #' Generate Base Shape
 #'
-#' @param image Matrix
-#'
 #' @return image array
 #' @keywords internal
 #'
@@ -84,16 +82,18 @@ generate_base_shape = function(heightmap, baseshape, angle=0) {
   return(heightmap)
 }
 
-#' Run Documentation
-#' 
-#' @return bool
+#' @title Run Documentation
 #'
-#' @keywords internal
+#' @description This function determines if the examples are being run in pkgdown. It is not meant to be called by the user.
+#'
+#' @export
+#'
+#' @return Boolean value.
+#' @examples
+#' # See if the documentation should be run.
+#' run_documentation()
 run_documentation = function() {
-  return(identical(Sys.getenv("IN_PKGDOWN"), "true") && 
-         length(find.package("magick", quiet = TRUE)) > 0 && 
-         length(find.package("sf", quiet = TRUE)) > 0 && 
-         length(find.package("rgdal", quiet = TRUE)) > 0)
+  return(identical(Sys.getenv("IN_PKGDOWN"), "true"))
 }
 
 #' Unit Vector

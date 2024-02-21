@@ -12,6 +12,7 @@ generate_label_overlay(
   heightmap = NULL,
   width = NA,
   height = NA,
+  resolution_multiply = 1,
   text_size = 1,
   color = "black",
   font = 1,
@@ -46,6 +47,11 @@ overlay automatically.}
 \item{width}{Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.}
 
 \item{height}{Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.}
+
+\item{resolution_multiply}{Default `1`. If passing in `heightmap` instead of width/height, amount to 
+increase the resolution of the overlay, which should make lines/polygons/text finer. 
+Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+in the final map.}
 
 \item{text_size}{Default `1`. Text size.}
 
@@ -95,7 +101,7 @@ use an `sf` object or manually specify the x/y coordinates and label.
 }
 \examples{
 #Add the included `sf` object with roads to the montereybay dataset
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Create the water palette
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
@@ -116,7 +122,7 @@ bathy_hs \%>\%
                                     seed=1))  \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #It's hard to read these values, so we'll add a white halo.
 bathy_hs \%>\% 
  add_shadow(lamb_shade(montereybay,zscale=50),0.3) \%>\%
@@ -131,7 +137,7 @@ bathy_hs \%>\%
                                     seed=1))  \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Plot the actual town locations, using the manual plotting interface instead of the `sf` object
 montereybay \%>\%
  height_shade() \%>\%
@@ -146,7 +152,7 @@ montereybay \%>\%
                                     seed=1))  \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Adding a softer blurred halo
 montereybay \%>\%
  height_shade() \%>\%
@@ -161,7 +167,7 @@ montereybay \%>\%
                                     seed=1))  \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Changing the seed changes the locations of the labels
 montereybay \%>\%
  height_shade() \%>\%

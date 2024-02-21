@@ -2,6 +2,8 @@
 #'
 #'@description Displays the shaded map in 3D with the `rgl` package. 
 #'
+#'Note: Calling `plot_3d()` resets the scene cache for the `render_snapshot()`, `render_depth()`, and `render_highquality()`
+#'
 #'@param hillshade Hillshade/image to be added to 3D surface map.
 #'@param heightmap A two-dimensional matrix, where each entry in the matrix is the elevation at that point. All points are assumed to be evenly spaced.
 #'@param zscale Default `1`. The ratio between the x and y spacing (which are assumed to be equal) and the z axis. For example, if the elevation levels are in units
@@ -14,7 +16,7 @@
 #'@param shadow Default `TRUE`. If `FALSE`, no shadow is rendered.
 #'@param shadowdepth Default `auto`, which sets it to `soliddepth - soliddepth/10`. Depth of the shadow layer.
 #'@param shadowcolor Default `auto`. Color of the shadow, automatically computed as `shadow_darkness`
-#'the luminance of the `background` color in the CIELab colorspace if not specified.
+#'the luminance of the `background` color in the CIELuv colorspace if not specified.
 #'@param shadow_darkness Default `0.5`. Darkness of the shadow, if `shadowcolor = "auto"`.
 #'@param shadowwidth Default `auto`, which sizes it to 1/10th the smallest dimension of `heightmap`. Width of the shadow in units of the matrix. 
 #'@param water Default `FALSE`. If `TRUE`, a water layer is rendered.
@@ -68,13 +70,12 @@
 #'@param close_previous Default `TRUE`. Closes any previously open `rgl` window. If `FALSE`, 
 #'old windows will be kept open.
 #'@param clear_previous Default `TRUE`. Clears the previously open `rgl` window if `plot_new = FALSE`.
-#'@param ... Additional arguments to pass to the `rgl::par3d` function.
 #'
 #'@import rgl
 #'@export
 #'@examples
 #'#Plotting a spherical texture map of the built-in `montereybay` dataset.
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="desert") %>%
 #'  plot_3d(montereybay,zscale=50)
@@ -82,7 +83,7 @@
 #'}
 #'
 #'#With a water layer  
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="imhof2") %>%
 #'  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2", 
@@ -91,7 +92,7 @@
 #'}
 #'
 #'#With a soil texture to the base  
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="imhof3") %>%
 #'  plot_3d(montereybay, zscale=50, water = TRUE,  watercolor="imhof4", 
@@ -101,7 +102,7 @@
 #'}
 #'
 #'#We can also change the base by setting "baseshape" to "hex" or "circle"
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="imhof1") %>%
 #'  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
@@ -109,7 +110,7 @@
 #'render_snapshot()
 #'}
 #'
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="imhof1") %>%
 #'  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
@@ -128,7 +129,7 @@
 #'mb_water = montereybay
 #'mb_water[mb_water > -10] = NA
 #'
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'montereybay %>%
 #'  sphere_shade(texture="imhof1") %>%
 #'  plot_3d(mb_water, zscale=50, water = TRUE, watercolor="imhof1", theta=-45,
@@ -148,13 +149,14 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
                    theta=45, phi = 45, fov=0, zoom = 1, background="white", windowsize = 600,
                    precomputed_normals = NULL, asp = 1,
                    triangulate = FALSE, max_error = 0, max_tri = 0, verbose = FALSE,
-                   plot_new = TRUE, close_previous = TRUE, clear_previous = TRUE,
-                   ...) {
+                   plot_new = TRUE, close_previous = TRUE, clear_previous = TRUE) {
   if(!plot_new && clear_previous) {
     rgl::clear3d()
   }
+  if(!is.null(get("scene_cache", envir = ray_cache_scene_envir))) {
+    assign("scene_cache", NULL, envir = ray_cache_scene_envir)
+  }
   #setting default zscale if montereybay is used and tell user about zscale
-  argnameschar = unlist(lapply(as.list(sys.call()),as.character))[-1]
   argnames = as.list(sys.call())
   if(!is.null(attr(heightmap,"rayshader_data"))) {
     if (!("zscale" %in% as.character(names(argnames)))) {
@@ -312,6 +314,11 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
     normalsx = (t(normals$x[c(-1, -nrow(normals$x)), c(-1,-ncol(normals$x))]))
     normalsy = (t(normals$z[c(-1, -nrow(normals$z)), c(-1,-ncol(normals$z))]))
     normalsz = (t(normals$y[c(-1, -nrow(normals$y)), c(-1,-ncol(normals$y))]))
+    replace_na_vals = is.na(normalsx) | is.na(normalsy) | is.na(normalsz)
+    normalsx[replace_na_vals] = 0
+    normalsy[replace_na_vals] = 1
+    normalsz[replace_na_vals] = 0
+    
     ray_surface = generate_surface(heightmap, zscale = zscale)
     rgl::triangles3d(x = ray_surface$verts, 
                      indices = ray_surface$inds, 
@@ -333,22 +340,22 @@ plot_3d = function(hillshade, heightmap, zscale=1, baseshape="rectangle",
     tris[,2] =  tris[,2]/zscale
     nr = nrow(heightmap)
     nc = ncol(heightmap)
-    rn = tris[,1]+1
-    cn = tris[,3]+1
+    # rn = tris[,1]+1
+    # cn = tris[,3]+1
+    
     # normal_comp = matrix(c(normalsz[rn + nr*(cn-1)],normalsy[rn + nr*(cn-1)],-normalsx[rn + nr*(cn-1)]),ncol=3)
     texcoords = tris[,c(1,3)]
-    texcoords[,1] = texcoords[,1]/(nrow(heightmap)-1)
-    texcoords[,2] = texcoords[,2]/(ncol(heightmap)-1)
-    tris[,1] = tris[,1] - nrow(heightmap)/2 +1
-    tris[,3] = tris[,3] - ncol(heightmap)/2
+    texcoords[,1] = texcoords[,1]/(nr-1)
+    texcoords[,2] = texcoords[,2]/(nc-1)
+    tris[,1] = tris[,1] - (nr-1)/2# +1
+    tris[,3] = tris[,3] - (nc-1)/2
     tris[,3] = -tris[,3]
     rgl::triangles3d(tris, texcoords = texcoords, 
-                     indices = index_vals,
+                     indices = index_vals, back = "cull",
                      #normals = normal_comp,
                      texture=tempmap,lit=FALSE,color="white",tag = "surface_tris")
   }
   rgl::bg3d(color = background,texture=NULL)
-  # rgl::par3d(windowRect = windowsize, mouseMode = c("none", "polar", "fov", "zoom", "pull"), ...)
   if(solid && !triangulate) {
     make_base(heightmap,basedepth=soliddepth,basecolor=solidcolor,zscale=zscale, 
               soil = soil, soil_freq = soil_freq, soil_levels = soil_levels, soil_color1=soil_color_light,

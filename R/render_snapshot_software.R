@@ -1,12 +1,8 @@
-#'@title Render High Quality
+#'@title Render Software Snapshot
 #'
-#'@param cache_filename Name of temporary filename to store OBJ file, if the user does not want to rewrite the file each time.
-#'@param ground_size Default `10000`. The width of the plane representing the ground.
-#'@param camera_location Default `NULL`. Custom position of the camera. The `FOV`, `width`, and `height` arguments will still
-#'be derived from the rgl window.
 #'@param ... Additional parameters to pass to `rayvertex::rasterize_scene()`
 #'@keywords internal
-render_snapshot_software = function(filename, cache_filename = NULL, camera_location = NULL, 
+render_snapshot_software = function(filename, cache_scene = FALSE, camera_location = NULL, 
                                     camera_lookat = c(0,0,0),background=NULL, return_all = FALSE,
                                     width = NULL, height = NULL, light_direction = NULL, fake_shadow = TRUE, 
                                     text_angle = NULL, text_size = 1, text_offset = c(0,0,0), fov=NULL, 
@@ -40,10 +36,6 @@ render_snapshot_software = function(filename, cache_filename = NULL, camera_loca
     sepval = "/"
   }
   no_cache = FALSE
-  if(is.null(cache_filename)) {
-    no_cache = TRUE
-    cache_filename = paste0(tempdir(), sepval, "temprayfile.obj")
-  } 
   surfaceid = get_ids_with_labels(typeval = c("surface", "surface_tris"))
   surfacevertices = rgl.attrib(surfaceid$id[1], "vertices")
   polygonid = get_ids_with_labels(typeval = c("polygon3d"))
@@ -141,15 +133,18 @@ render_snapshot_software = function(filename, cache_filename = NULL, camera_loca
   } else {
     lookfrom = camera_location
   }
-  
-  if(tools::file_ext(cache_filename) != "obj") {
-    cache_filename = paste0(cache_filename, ".obj")
+  if(cache_scene) {
+    ray_scene = get("scene_cache", envir = ray_cache_scene_envir)
+    if(is.null(ray_scene)) {
+      ray_scene = convert_rgl_to_raymesh()
+      assign("scene_cache", ray_scene, envir = ray_cache_scene_envir)
+    }
+  } else {
+    ray_scene = convert_rgl_to_raymesh()
   }
-  if(no_cache || !file.exists(cache_filename)) {
-    save_obj(cache_filename, save_shadow = TRUE)
-  }
-  scene = rayvertex::obj_mesh(cache_filename, 
-                              position = c(-bbox_center[1],-bbox_center[2],-bbox_center[3]))
+  scene = rayvertex::translate_mesh(
+    ray_scene,
+    position = c(-bbox_center[1],-bbox_center[2],-bbox_center[3]))
   
   ##########
   labelids = get_ids_with_labels(typeval = "raytext")$id
@@ -222,11 +217,13 @@ render_snapshot_software = function(filename, cache_filename = NULL, camera_loca
     if(thick_lines) {
       for(j in seq_len(nrow(temp_verts)-1)) {
         line_mat = rayvertex::material_list(diffuse = temp_color[j,1:3], type = "color")
-        line_scene[[line_counter]] = rayvertex::segment_mesh(start = temp_verts[j,] - bbox_center, 
-                                                             end   = temp_verts[j+1,] - bbox_center,
-                                                             radius = line_radius,
-                                                             material = line_mat)
-        line_counter = line_counter + 1
+        if(!all(temp_verts[j+1,] == temp_verts[j,])) {
+          line_scene[[line_counter]] = rayvertex::segment_mesh(start = temp_verts[j,] - bbox_center, 
+                                                               end   = temp_verts[j+1,] - bbox_center,
+                                                               radius = line_radius,
+                                                               material = line_mat)
+          line_counter = line_counter + 1
+        }
       }
     } else {
       for(j in seq_len(nrow(temp_verts)-1)) {

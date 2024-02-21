@@ -8,21 +8,21 @@
 #'@return RGB array of a single color layer.
 #'@export
 #'@examples
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Shade a red map
 #'montereybay %>%
 #'  constant_shade("red") %>%
 #'  add_shadow(lamb_shade(montereybay),0) |> 
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Shade a green map
 #'montereybay %>%
 #'  constant_shade("green") %>%
 #'  add_shadow(lamb_shade(montereybay),0) |> 
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Add a blue tint
 #'montereybay %>%
 #'  height_shade() |> 
@@ -30,7 +30,7 @@
 #'  add_shadow(lamb_shade(montereybay,zscale=50),0) |> 
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Use a blank map on which to draw other data
 #'montereybay %>%
 #'  constant_shade() %>%
@@ -41,7 +41,7 @@
 #'  plot_map()
 #'}
 constant_shade = function(heightmap, color = "white", alpha = 1) {
-  return_array = array(alpha, dim = c(nrow(heightmap),ncol(heightmap),4))
+  return_array = array(alpha, dim = c(ncol(heightmap),nrow(heightmap),4))
   const_col = convert_color(color)
   return_array[,,1] = const_col[1]
   return_array[,,2] = const_col[2]

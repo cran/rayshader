@@ -39,13 +39,19 @@
 #' All points are assumed to be evenly spaced.
 #'@param baseshape Default `rectangle`. Shape of the base. Options are `c("rectangle","circle","hex")`.
 #'@param color Default `black`. Color of the 3D model, if `load_material = FALSE`.
-#'@param offset Default `5`. Offset of the track from the surface, if `altitude = NULL`.
+#'@param lit Default `TRUE`. Whether to light the polygons. 
+#'@param light_altitude Default `c(45, 60)`. Degree(s) from the horizon from which to light the polygons.
+#'@param light_direction Default `c(45, 60)`. Degree(s) from north from which to light the polygons.
+#'@param light_intensity Default `0.3`. Intensity of the specular highlight on the polygons.
+#'@param light_relative Default `FALSE`. Whether the light direction should be taken relative to the camera,
+#'or absolute.
+#'@param offset Default `5`. Offset of the model from the surface, if `altitude = NULL`.
 #'@param clear_previous Default `FALSE`. If `TRUE`, it will clear all existing points.
 #'@param rgl_tag Default `""`. Tag to add to the rgl scene id, will be prefixed by `"obj"`
 #'@param ... Additional arguments to pass to `rgl::triangles3d()`.
 #'@export
 #'@examples
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Render the 3D map
 #'moss_landing_coord = c(36.806807, -121.793332)
 #'montereybay %>%
@@ -65,7 +71,7 @@
 #'           zscale=50, color=rainbow(100), smooth = FALSE, clear_previous = TRUE) 
 #'render_snapshot()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Rotate the flag to follow the circle
 #'render_obj(flag_full_obj(), extent = attr(montereybay,"extent"), heightmap = montereybay,
 #'           lat = unlist(circle_coords_lat), long = unlist(circle_coords_long),
@@ -74,7 +80,7 @@
 #'           zscale=50, color=rainbow(100), smooth = FALSE, clear_previous = TRUE) 
 #'render_snapshot()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Style the pole with a different color
 #'render_obj(flag_pole_obj(), extent = attr(montereybay,"extent"), heightmap = montereybay,
 #'           lat = unlist(circle_coords_lat), long = unlist(circle_coords_long),
@@ -95,7 +101,9 @@ render_obj = function(filename, extent = NULL, lat = NULL, long = NULL, altitude
                       zscale=1, heightmap = NULL, load_material = FALSE, load_normals = TRUE,
                       color = "grey50", offset = 0, obj_zscale = FALSE, swap_yz = NULL,
                       angle=c(0,0,0), scale = c(1,1,1), clear_previous = FALSE,
-                      baseshape = "rectangle",
+                      baseshape = "rectangle", lit = FALSE,
+                      light_altitude = c(45,30), light_direction = c(315,135), 
+                      light_intensity = 0.3, light_relative = FALSE,
                       rgl_tag = "",
                       ...) {
   if(rgl::cur3d() == 0) {
@@ -310,6 +318,7 @@ render_obj = function(filename, extent = NULL, lat = NULL, long = NULL, altitude
                            texture = texture,
                            tag = sprintf("obj%s",rgl_tag),
                            back = "filled",
+                           lit = lit,
                            ...)
         
       } else {
@@ -322,6 +331,7 @@ render_obj = function(filename, extent = NULL, lat = NULL, long = NULL, altitude
                            texture = texture,
                            tag = sprintf("obj%s",rgl_tag),
                            back = "filled",
+                           lit = lit,
                            ...)
       }
     } else {
@@ -334,6 +344,7 @@ render_obj = function(filename, extent = NULL, lat = NULL, long = NULL, altitude
                            normals = new_norm,
                            tag = sprintf("obj%s",rgl_tag),
                            back = "filled",
+                           lit = lit,
                            ...)
       } else {
         id = rgl::triangles3d(x=obj$vertices,
@@ -343,10 +354,25 @@ render_obj = function(filename, extent = NULL, lat = NULL, long = NULL, altitude
                            indices = ind_temp,
                            tag = sprintf("obj%s",rgl_tag),
                            back = "filled",
+                           lit = lit,
                            ...)
       }
     }
     assign(as.character(id), mat_has_norm, envir = ray_has_norm_envir)
     assign(as.character(id), has_texture, envir = ray_has_tex_envir)
   }
+  if(lit) {
+    existing_lights = rgl::ids3d(type = "lights")
+    for(i in seq_len(nrow(existing_lights))) {
+      rgl::pop3d(type="lights")
+    }
+    if(length(light_altitude) < length(light_direction)) {
+      stop("light_altitude and light_direction must be same length")
+    }
+    for(i in seq_len(length(light_direction))) {
+      rgl::light3d(theta = -light_direction[i]+180, phi = light_altitude[i], 
+                   specular = convert_color(rep(light_intensity,3), as_hex = TRUE),
+                   viewpoint.rel = light_relative)
+    }
+  } 
 }

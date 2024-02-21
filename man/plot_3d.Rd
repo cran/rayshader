@@ -47,8 +47,7 @@ plot_3d(
   verbose = FALSE,
   plot_new = TRUE,
   close_previous = TRUE,
-  clear_previous = TRUE,
-  ...
+  clear_previous = TRUE
 )
 }
 \arguments{
@@ -74,7 +73,7 @@ of 1 meter and the grid values are separated by 10 meters, `zscale` would be 10.
 \item{shadowdepth}{Default `auto`, which sets it to `soliddepth - soliddepth/10`. Depth of the shadow layer.}
 
 \item{shadowcolor}{Default `auto`. Color of the shadow, automatically computed as `shadow_darkness`
-the luminance of the `background` color in the CIELab colorspace if not specified.}
+the luminance of the `background` color in the CIELuv colorspace if not specified.}
 
 \item{shadow_darkness}{Default `0.5`. Darkness of the shadow, if `shadowcolor = "auto"`.}
 
@@ -160,15 +159,15 @@ the data will be plotted in the same window.}
 old windows will be kept open.}
 
 \item{clear_previous}{Default `TRUE`. Clears the previously open `rgl` window if `plot_new = FALSE`.}
-
-\item{...}{Additional arguments to pass to the `rgl::par3d` function.}
 }
 \description{
-Displays the shaded map in 3D with the `rgl` package.
+Displays the shaded map in 3D with the `rgl` package. 
+
+Note: Calling `plot_3d()` resets the scene cache for the `render_snapshot()`, `render_depth()`, and `render_highquality()`
 }
 \examples{
 #Plotting a spherical texture map of the built-in `montereybay` dataset.
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="desert") \%>\%
  plot_3d(montereybay,zscale=50)
@@ -176,7 +175,7 @@ render_snapshot()
 }
 
 #With a water layer  
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="imhof2") \%>\%
  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2", 
@@ -185,7 +184,7 @@ render_snapshot()
 }
 
 #With a soil texture to the base  
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="imhof3") \%>\%
  plot_3d(montereybay, zscale=50, water = TRUE,  watercolor="imhof4", 
@@ -195,7 +194,7 @@ render_snapshot()
 }
 
 #We can also change the base by setting "baseshape" to "hex" or "circle"
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="imhof1") \%>\%
  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
@@ -203,7 +202,7 @@ montereybay \%>\%
 render_snapshot()
 }
 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="imhof1") \%>\%
  plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof1", theta=-45, zoom=0.7,
@@ -222,7 +221,7 @@ render_snapshot()
 mb_water = montereybay
 mb_water[mb_water > -10] = NA
 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 montereybay \%>\%
  sphere_shade(texture="imhof1") \%>\%
  plot_3d(mb_water, zscale=50, water = TRUE, watercolor="imhof1", theta=-45,

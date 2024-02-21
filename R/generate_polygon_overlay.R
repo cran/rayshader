@@ -11,6 +11,10 @@
 #'overlay automatically.
 #'@param width Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
 #'@param height Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
+#'@param resolution_multiply Default `1`. If passing in `heightmap` instead of width/height, amount to 
+#'increase the resolution of the overlay, which should make lines/polygons/text finer. 
+#'Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+#'in the final map.
 #'@param linecolor Default `black`. Color of the lines.
 #'@param palette Default `black`. Single color, named vector color palette, or palette function. 
 #'If this is a named vector and `data_column_fill` is not `NULL`, 
@@ -23,12 +27,12 @@
 #'@export
 #'@examples
 #'#Plot the counties around Monterey Bay, CA
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'generate_polygon_overlay(monterey_counties_sf, palette = rainbow, 
 #'                         extent = attr(montereybay,"extent"), heightmap = montereybay) %>%
 #'  plot_map() 
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#These counties include the water, so we'll plot bathymetry data over the polygon
 #'#data to only include parts of the polygon that fall on land.
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
@@ -39,7 +43,7 @@
 #'  add_overlay(generate_altitude_overlay(bathy_hs, montereybay, start_transition = 0)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Add a semi-transparent hillshade and change the palette, and remove the polygon lines
 #'montereybay %>%
 #'  sphere_shade(texture = "bw") %>%
@@ -51,7 +55,7 @@
 #'  add_shadow(ray_shade(montereybay,zscale=50),0) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Map one of the variables in the sf object and use an explicitly defined color palette
 #'county_palette = c("087" = "red",    "053" = "blue",   "081" = "green", 
 #'                   "069" = "yellow", "085" = "orange", "099" = "purple") 
@@ -67,7 +71,8 @@
 #'  plot_map()
 #'}
 generate_polygon_overlay = function(geometry, extent, heightmap = NULL, 
-                                    width=NA, height=NA, offset = c(0,0), data_column_fill = NULL, 
+                                    width=NA, height=NA, resolution_multiply = 1,
+                                    offset = c(0,0), data_column_fill = NULL, 
                                     linecolor = "black", palette = "white", linewidth = 1) {
   if(!(length(find.package("sf", quiet = TRUE)) > 0)) {
     stop("{sf} package required for generate_line_overlay()")
@@ -81,14 +86,20 @@ generate_polygon_overlay = function(geometry, extent, heightmap = NULL,
   if(!inherits(geometry,"sf")) {
     stop("geometry must be {sf} object")
   }
+  if(is.numeric(extent)) {
+    extent = raster::extent(extent)
+  }
   sf_polygons_cropped = base::suppressMessages(base::suppressWarnings(sf::st_crop(geometry, extent)))
   
   if(is.na(height)) {
-    height  = ncol(heightmap)
+    height = ncol(heightmap)
   }
   if(is.na(width)) {
     width  = nrow(heightmap)
   }
+  height = height * resolution_multiply
+  width = width * resolution_multiply
+  
   if (is.function(palette)) {
     palette = palette(nrow(sf_polygons_cropped))
   }

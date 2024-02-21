@@ -8,6 +8,15 @@
 #'either `convert_path_to_animation_coords()` or `rayrender::generate_camera_motion()` functions.
 #'
 #'@param filename Default `NA`. Filename of saved image. If missing, will display to current device.
+#'@param samples Default `128`. The maximum number of samples for each pixel. Increase this to increase the quality of the rendering.
+#'@param sample_method Default `"sobol_blue"`, unless `samples > 256`, in which it defaults to `"sobol"`.
+#'The type of sampling method used to generate random numbers. 
+#'The other options are `random` (worst quality but fastest), 
+#'`sobol_blue` (best option for sample counts below 256), and `sobol` 
+#'(slowest but best quality, better than `sobol_blue` for sample counts greater than 256).
+#'@param min_variance Default `1e-6`. Minimum acceptable variance for a block of pixels for the adaptive sampler. 
+#'Smaller numbers give higher quality images, at the expense of longer rendering times. 
+#'If this is set to zero, the adaptive sampler will be turned off and the renderer will use the maximum number of samples everywhere.
 #'@param light Default `TRUE`. Whether there should be a light in the scene. If not, the scene will be lit with a bluish sky.
 #'@param lightdirection Default `315`. Position of the light angle around the scene. 
 #'If this is a vector longer than one, multiple lights will be generated (using values from 
@@ -18,8 +27,11 @@
 #'@param lightsize Default `NULL`. Radius of the light(s). Automatically chosen, but can be set here by the user.
 #'@param lightintensity Default `500`. Intensity of the light.
 #'@param lightcolor Default `white`. The color of the light.
-#'@param obj_material Default `rayrender::diffuse()`. The material properties of the object file. 
-#'@param cache_filename Name of temporary filename to store OBJ file, if the user does not want to rewrite the file each time.
+#'@param material Default `rayrender::diffuse()`. The material properties of the object file. Only used if `override_material = TRUE`
+#'@param override_material Default `FALSE`. Whether to override the default diffuse material with that in argument `material`.
+#'@param cache_scene Default `FALSE`. Whether to cache the current scene to memory so it does not have to be converted to a `raymesh` object 
+#'each time `render_snapshot()` is called. If `TRUE` and a scene has been cached, it will be used when rendering.
+#'@param reset_scene_cache Default `FALSE`. Resets the scene cache before rendering.
 #'@param width Defaults to the width of the rgl window. Width of the rendering. 
 #'@param height Defaults to the height of the rgl window. Height of the rendering. 
 #'@param text_angle Default `NULL`, which forces the text always to face the camera. If a single angle (degrees),
@@ -78,7 +90,7 @@
 #'@export
 #'@examples
 #'#Render the volcano dataset using pathtracing
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'volcano %>%
 #'  sphere_shade() %>%
 #'  plot_3d(volcano,zscale = 2)
@@ -86,25 +98,25 @@
 #'}
 #'
 #'#Change position of light
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_highquality(lightdirection = 45, min_variance = 0, sample_method = "sobol_blue")
 #'}
 #'
 #'#Change vertical position of light
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_highquality(lightdirection = 45, lightaltitude = 10, 
 #'                   min_variance = 0, sample_method = "sobol_blue")
 #'}
 #'
 #'#Change the ground material
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_highquality(lightdirection = 45, lightaltitude=60,
 #'                   ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"),
 #'                   min_variance = 0, sample_method = "sobol_blue")
 #'}
 #'
 #'#Add three different color lights and a title
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
 #'                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
 #'                   title_bar_color="white", title_bar_alpha=0.8,
@@ -112,14 +124,14 @@
 #'}
 #'
 #'#Change the camera:
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 #'render_highquality(lightdirection = c(0),
 #'                   title_bar_color="white", title_bar_alpha=0.8,
 #'                   min_variance = 0, sample_method = "sobol_blue")
 #'}
 #'#Add a shiny metal sphere
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 #'render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
 #'                   lightcolor=c("red","green","blue"),
@@ -129,7 +141,7 @@
 #'}
 #'
 #'#Add a red light to the volcano and change the ambient light to dusk
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_camera(theta=45,phi=45)
 #'render_highquality(lightdirection = c(240), lightaltitude=30, 
 #'                   lightcolor=c("#5555ff"),
@@ -138,7 +150,7 @@
 #'                   min_variance = 0, sample_method = "sobol_blue")
 #'}
 #'#Manually change the camera location and direction
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'render_camera(theta=45,phi=45,fov=90)
 #'render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
 #'                   camera_location = c(50,10,10), camera_lookat = c(0,15,0),
@@ -146,10 +158,14 @@
 #'                                    material=rayrender::light(color="red",intensity=10)),
 #'                   min_variance = 0, sample_method = "sobol_blue")
 #'}
-render_highquality = function(filename = NULL, light = TRUE, 
+render_highquality = function(filename = NA, samples = 128, 
+                              sample_method = "sobol_blue", min_variance=1e-7,
+                              light = TRUE, 
                               lightdirection = 315, lightaltitude = 45, lightsize=NULL,
-                              lightintensity = 500, lightcolor = "white", obj_material = rayrender::diffuse(),
-                              cache_filename=NULL, width = NULL, height = NULL, 
+                              lightintensity = 500, lightcolor = "white", material = rayrender::diffuse(),
+                              override_material = FALSE,
+                              cache_scene = FALSE, reset_scene_cache = FALSE, 
+                              width = NULL, height = NULL, 
                               text_angle = NULL, text_size = 6, text_offset = c(0,0,0), 
                               line_radius=0.5, point_radius = 0.5, smooth_line = FALSE,
                               use_extruded_paths = FALSE,
@@ -171,7 +187,14 @@ render_highquality = function(filename = NULL, light = TRUE,
   if(rgl::cur3d() == 0) {
     stop("No rgl window currently open.")
   }
-  if(!is.null(filename)) {
+  if(samples > 256 && sample_method == "sobol_blue") {
+    warning(r"{When `sample_method = "sobol_blue"`, `samples` must be less than or equal to 256. Setting `sample_method` to `"sobol"`.}")
+    sample_method = "sobol"
+  }
+  if(reset_scene_cache) {
+    assign("scene_cache", NULL, envir = ray_cache_scene_envir)
+  }
+  if(!is.na(filename)) {
     if(dirname(filename) != ".") {
       if(!dir.exists(dirname(filename))) {
         stop(sprintf("Error: directory '%s' does not exist.", dirname(filename)))
@@ -207,14 +230,14 @@ render_highquality = function(filename = NULL, light = TRUE,
     stop(sprintf("Point material arguments `%s` not valid for the material. Valid argument names are: \n%s", 
                  all_not_matching, all_arg_names))
   }
-  
   #Set use_extruded_path to TRUE if path_material is dielectric
-  path_material_df = path_material()
+  path_material_raw = path_material()
+  path_material_df = path_material_raw[[1]]
   if(path_material_df$type == "dielectric" && !use_extruded_paths) {
     message("dielectric material for paths selected--setting `use_extruded_paths = TRUE` for accurate rendering of material")
     use_extruded_paths = TRUE
   }
-  
+
   #Get scene info
   windowrect = rgl::par3d()$windowRect
   if(!is.null(title_text)) {
@@ -233,11 +256,7 @@ render_highquality = function(filename = NULL, light = TRUE,
   } else {
     sepval = "/"
   }
-  no_cache = FALSE
-  if(is.null(cache_filename)) {
-    no_cache = TRUE
-    cache_filename = paste0(tempdir(), sepval, "temprayfile.obj")
-  }
+
   surfaceid = get_ids_with_labels(typeval = c("surface", "surface_tris"))
   surfacevertices = rgl.attrib(surfaceid$id[1], "vertices")
   polygonid = get_ids_with_labels(typeval = c("polygon3d"))
@@ -344,32 +363,31 @@ render_highquality = function(filename = NULL, light = TRUE,
       camera_lookat = camera_interpolate[2] * camera_lookat
     }
   }
-  if(tools::file_ext(cache_filename) != "obj") {
-    cache_filename = paste0(cache_filename, ".obj")
-  }
-  if(no_cache || !file.exists(cache_filename)) {
-    if(obj_material$type %in% c("diffuse","oren-nayar")) {
-      save_obj(cache_filename, save_shadow = FALSE)
-    } else {
-      save_obj(cache_filename, save_shadow = FALSE, save_texture = FALSE)
+  if(cache_scene) {
+    ray_scene = get("scene_cache", envir = ray_cache_scene_envir)
+    if(is.null(ray_scene)) {
+      ray_scene = convert_rgl_to_raymesh(save_shadow = FALSE)
+      assign("scene_cache", ray_scene, envir = ray_cache_scene_envir)
     }
-  }
-  if(obj_material$type %in% c("diffuse","oren-nayar")) {
-    scene = rayrender::obj_model(cache_filename, 
-                      x = -bbox_center[1],
-                      y = -bbox_center[2],
-                      z = -bbox_center[3],
-                      load_normals = load_normals,
-                      load_material = TRUE, calculate_consistent_normals = calculate_consistent_normals,
-                      material = obj_material)
   } else {
-    scene = rayrender::obj_model(cache_filename, 
-                      x = -bbox_center[1],
-                      y = -bbox_center[2],
-                      z = -bbox_center[3],
-                      load_normals = load_normals,
-                      calculate_consistent_normals = calculate_consistent_normals,
-                      material = obj_material)
+    ray_scene = convert_rgl_to_raymesh(save_shadow = FALSE)
+  }
+  
+  if(!override_material) {
+    scene = rayrender::raymesh_model(ray_scene,
+                                     x = -bbox_center[1],
+                                     y = -bbox_center[2],
+                                     z = -bbox_center[3],
+                                     override_material = FALSE,
+                                     calculate_consistent_normals = calculate_consistent_normals)
+  } else {
+    scene = rayrender::raymesh_model(ray_scene,
+                                     x = -bbox_center[1],
+                                     y = -bbox_center[2],
+                                     z = -bbox_center[3],
+                                     material = material,
+                                     override_material = TRUE,
+                                     calculate_consistent_normals = calculate_consistent_normals)
   }
   has_rayimage = TRUE
   if(!(length(find.package("rayimage", quiet = TRUE)) > 0)) {
@@ -483,12 +501,7 @@ render_highquality = function(filename = NULL, light = TRUE,
     temp_center = rgl.attrib(scalelabelids[i], "centers")
     temp_color = rgl.attrib(scalelabelids[i], "colors")
     for(j in seq_len(nrow(temp_label))) {
-      scalelabelfile = ""
-      if(!no_cache) {
-        scalelabelfile = sprintf("%s_%s.png",tools::file_path_sans_ext(cache_filename),temp_label[j,1])
-      } else {
-        scalelabelfile = tempfile(fileext = ".png")
-      }
+      scalelabelfile = tempfile(fileext = ".png")
       rayimage::add_title(matrix(0,ncol = nchar(temp_label[j,1])*60, nrow=60), 
                           title_size  = 60,
                           title_offset = c(0,0),title_text = temp_label, title_color = "white",
@@ -592,10 +605,8 @@ render_highquality = function(filename = NULL, light = TRUE,
   
   if(!is.null(animation_camera_coords)) {
     stopifnot(ncol(animation_camera_coords) == 14)
-    if(is.null(filename)) {
-      filename = NA
-    }
     rayrender::render_animation(scene, camera_motion = animation_camera_coords, width = width, height = height,
+                                min_variance = min_variance, samples = samples, sample_method = sample_method,
                                 filename = filename, clamp_value = clamp_value, ...)
     return()
   }
@@ -603,6 +614,7 @@ render_highquality = function(filename = NULL, light = TRUE,
   if(has_title) {
     temp = tempfile(fileext = ".png")
     debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=temp,
+                                           min_variance = min_variance, samples = samples, sample_method = sample_method,
                  ortho_dimensions = ortho_dimensions, width = width, height = height,  #camera_up = camera_up,
                  clamp_value = clamp_value, ...)
     if(has_title) {
@@ -619,9 +631,17 @@ render_highquality = function(filename = NULL, light = TRUE,
       }
     }
   } else {
-    debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
-                 ortho_dimensions = ortho_dimensions, width = width, height = height, #camera_up = camera_up,
-                 clamp_value = clamp_value, ...)
+    if(!is.na(filename)) {
+      debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, filename=filename,
+                                             min_variance = min_variance, samples = samples, sample_method = sample_method,
+                   ortho_dimensions = ortho_dimensions, width = width, height = height, #camera_up = camera_up,
+                   clamp_value = clamp_value, ...)
+    } else {
+      debug_return = rayrender::render_scene(scene, lookfrom = lookfrom, lookat = camera_lookat, fov = fov, 
+                                             min_variance = min_variance, samples = samples, sample_method = sample_method,
+                                             ortho_dimensions = ortho_dimensions, width = width, height = height, #camera_up = camera_up,
+                                             clamp_value = clamp_value, ...)
+    }
   }
   if(clear) {
     rgl::clear3d()

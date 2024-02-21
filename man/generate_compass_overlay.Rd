@@ -13,6 +13,7 @@ generate_compass_overlay(
   heightmap = NULL,
   width = NA,
   height = NA,
+  resolution_multiply = 1,
   color1 = "white",
   color2 = "black",
   text_color = "black",
@@ -45,6 +46,11 @@ RGB image array automatically.}
 
 \item{height}{Default `NA`. Width of the resulting image array. Default the same dimensions as height map.}
 
+\item{resolution_multiply}{Default `1`. If passing in `heightmap` instead of width/height, amount to 
+increase the resolution of the overlay, which should make lines/polygons finer. 
+Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+in the final map.}
+
 \item{color1}{Default `white`. Primary color of the compass.}
 
 \item{color2}{Default `black`. Secondary color of the symcompass.}
@@ -75,7 +81,7 @@ This adds the compass
 Based on code from "Auxiliary Cartographic Functions in R: North Arrow, Scale Bar, and Label with a Leader Arrow"
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Create the water palette
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
@@ -95,40 +101,40 @@ base_map \%>\%
  plot_map()
 }
 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the position to be over the water
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15)) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the text color for visibility
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, text_color="white")) \%>\% 
  plot_map()
 } 
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Alternatively, add a halo color to improve contrast
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, y=0.15,
              halo_color="white", halo_expand = 1)) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Alternatively, add a halo color to improve contrast
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, y=0.15,
              halo_color="white", halo_expand = 1)) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the color scheme
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, y=0.15,
              halo_color="white", halo_expand = 1, color1 = "purple", color2 = "red")) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Remove the inner border
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, y=0.15,
@@ -137,7 +143,7 @@ base_map \%>\%
              color1 = "darkolivegreen4", color2 = "burlywood3")) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the size of the compass and text
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.75, y=0.75,
@@ -151,7 +157,7 @@ base_map \%>\%
              size=0.075/2, text_size = 0.75)) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the bearing of the compass
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.85, y=0.85,
@@ -165,7 +171,7 @@ base_map \%>\%
              size=0.075)) \%>\% 
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Create a drop shadow effect
 base_map \%>\% 
  add_overlay(generate_compass_overlay(heightmap = montereybay, x = 0.15, y=0.15,

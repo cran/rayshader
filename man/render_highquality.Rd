@@ -5,15 +5,20 @@
 \title{Render High Quality}
 \usage{
 render_highquality(
-  filename = NULL,
+  filename = NA,
+  samples = 128,
+  sample_method = "sobol_blue",
+  min_variance = 1e-07,
   light = TRUE,
   lightdirection = 315,
   lightaltitude = 45,
   lightsize = NULL,
   lightintensity = 500,
   lightcolor = "white",
-  obj_material = rayrender::diffuse(),
-  cache_filename = NULL,
+  material = rayrender::diffuse(),
+  override_material = FALSE,
+  cache_scene = FALSE,
+  reset_scene_cache = FALSE,
   width = NULL,
   height = NULL,
   text_angle = NULL,
@@ -56,6 +61,18 @@ render_highquality(
 \arguments{
 \item{filename}{Default `NA`. Filename of saved image. If missing, will display to current device.}
 
+\item{samples}{Default `128`. The maximum number of samples for each pixel. Increase this to increase the quality of the rendering.}
+
+\item{sample_method}{Default `"sobol_blue"`, unless `samples > 256`, in which it defaults to `"sobol"`.
+The type of sampling method used to generate random numbers. 
+The other options are `random` (worst quality but fastest), 
+`sobol_blue` (best option for sample counts below 256), and `sobol` 
+(slowest but best quality, better than `sobol_blue` for sample counts greater than 256).}
+
+\item{min_variance}{Default `1e-6`. Minimum acceptable variance for a block of pixels for the adaptive sampler. 
+Smaller numbers give higher quality images, at the expense of longer rendering times. 
+If this is set to zero, the adaptive sampler will be turned off and the renderer will use the maximum number of samples everywhere.}
+
 \item{light}{Default `TRUE`. Whether there should be a light in the scene. If not, the scene will be lit with a bluish sky.}
 
 \item{lightdirection}{Default `315`. Position of the light angle around the scene. 
@@ -72,9 +89,14 @@ If this is a vector longer than one, multiple lights will be generated (using va
 
 \item{lightcolor}{Default `white`. The color of the light.}
 
-\item{obj_material}{Default `rayrender::diffuse()`. The material properties of the object file.}
+\item{material}{Default `rayrender::diffuse()`. The material properties of the object file. Only used if `override_material = TRUE`}
 
-\item{cache_filename}{Name of temporary filename to store OBJ file, if the user does not want to rewrite the file each time.}
+\item{override_material}{Default `FALSE`. Whether to override the default diffuse material with that in argument `material`.}
+
+\item{cache_scene}{Default `FALSE`. Whether to cache the current scene to memory so it does not have to be converted to a `raymesh` object 
+each time `render_snapshot()` is called. If `TRUE` and a scene has been cached, it will be used when rendering.}
+
+\item{reset_scene_cache}{Default `FALSE`. Resets the scene cache before rendering.}
 
 \item{width}{Defaults to the width of the rgl window. Width of the rendering.}
 
@@ -177,7 +199,7 @@ either `convert_path_to_animation_coords()` or `rayrender::generate_camera_motio
 }
 \examples{
 #Render the volcano dataset using pathtracing
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 volcano \%>\%
  sphere_shade() \%>\%
  plot_3d(volcano,zscale = 2)
@@ -185,25 +207,25 @@ render_highquality(min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change position of light
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_highquality(lightdirection = 45, min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change vertical position of light
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_highquality(lightdirection = 45, lightaltitude = 10, 
                   min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Change the ground material
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_highquality(lightdirection = 45, lightaltitude=60,
                   ground_material = rayrender::diffuse(checkerperiod = 30, checkercolor="grey50"),
                   min_variance = 0, sample_method = "sobol_blue")
 }
 
 #Add three different color lights and a title
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
                   lightcolor=c("red","green","blue"), title_text = "Red, Green, Blue",
                   title_bar_color="white", title_bar_alpha=0.8,
@@ -211,14 +233,14 @@ render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
 }
 
 #Change the camera:
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 render_highquality(lightdirection = c(0),
                   title_bar_color="white", title_bar_alpha=0.8,
                   min_variance = 0, sample_method = "sobol_blue")
 }
 #Add a shiny metal sphere
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_camera(theta=-45,phi=60,fov=60,zoom=0.8)
 render_highquality(lightdirection = c(0,120,240), lightaltitude=45, 
                   lightcolor=c("red","green","blue"),
@@ -228,7 +250,7 @@ render_highquality(lightdirection = c(0,120,240), lightaltitude=45,
 }
 
 #Add a red light to the volcano and change the ambient light to dusk
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_camera(theta=45,phi=45)
 render_highquality(lightdirection = c(240), lightaltitude=30, 
                   lightcolor=c("#5555ff"),
@@ -237,7 +259,7 @@ render_highquality(lightdirection = c(240), lightaltitude=30,
                   min_variance = 0, sample_method = "sobol_blue")
 }
 #Manually change the camera location and direction
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 render_camera(theta=45,phi=45,fov=90)
 render_highquality(lightdirection = c(240), lightaltitude=30, lightcolor=c("#5555ff"), 
                   camera_location = c(50,10,10), camera_lookat = c(0,15,0),

@@ -22,6 +22,7 @@ generate_scalebar_overlay(
   heightmap = NULL,
   width = NA,
   height = NA,
+  resolution_multiply = 1,
   color1 = "white",
   color2 = "black",
   text_color = "black",
@@ -81,6 +82,11 @@ RGB image array automatically.}
 
 \item{height}{Default `NA`. Width of the resulting image array. Default the same dimensions as height map.}
 
+\item{resolution_multiply}{Default `1`. If passing in `heightmap` instead of width/height, amount to 
+increase the resolution of the overlay, which should make lines/polygons/text finer. 
+Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+in the final map.}
+
 \item{color1}{Default `black`. Primary color of the scale bar.}
 
 \item{color2}{Default `white`. Secondary color of the scale bar.}
@@ -121,7 +127,7 @@ and then creates a scale bar at a specified x/y proportion across the map. If th
 scale bar of the proper length.
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Create the water palette
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
@@ -147,7 +153,7 @@ add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
                                       latlong=TRUE)) \%>\%
 plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the text color
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -156,7 +162,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the length
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -165,7 +171,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the thickness (default is length/20)
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -174,7 +180,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the text offset (given in multiples of thickness)
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -184,7 +190,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the primary and secondary colors, along with the border and tick color
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -195,7 +201,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Add a halo
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -204,7 +210,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the orientation, position, text alignment, and flip the ticks to the other side
 base_map \%>\%
  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000, x = 0.07,
@@ -214,7 +220,7 @@ base_map \%>\%
                                        latlong=TRUE)) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) { 
+if(run_documentation()) { 
 #64373.8 meters in 40 miles
 #Create custom labels, change font and text size, remove the border/ticks, and change the color
 #Here, we specify a width and height to double the resolution of the image (for sharper text)

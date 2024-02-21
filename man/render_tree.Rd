@@ -24,6 +24,7 @@ render_tree(
   min_height = 0,
   max_height = Inf,
   zscale = 1,
+  lit = TRUE,
   heightmap = NULL,
   baseshape = "rectangle",
   angle = c(0, 0, 0),
@@ -88,6 +89,8 @@ above that height.}
 
 \item{zscale}{Default `1`. The ratio between the x and y spacing (which are assumed to be equal) and the z axis in the original heightmap.}
 
+\item{lit}{Default `TRUE`. Whether to apply lighting to the tree.}
+
 \item{heightmap}{Default `NULL`. Automatically extracted from the rgl window--only use if auto-extraction
 of matrix extent isn't working. A two-dimensional matrix, where each entry in the matrix is the elevation at that point.
 All points are assumed to be evenly spaced.}
@@ -111,7 +114,7 @@ the size of the crown (the leafy part of the tree) and the trunk, the overall sc
 Users can also specify the minimum and maximum height of the trees to be rendered.
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Let's first start by drawing some trees in a circle around Monterey Bay
 #We won't scale these to a realistic size (yet)
 moss_landing_coord = c(36.806807, -121.793332)
@@ -126,11 +129,11 @@ circle_coords_lat = moss_landing_coord[1] + 0.3 * sin(t)
 circle_coords_long = moss_landing_coord[2] + 0.3 * cos(t)
 
 render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
-           tree_zscale = FALSE, tree_height = 30, 
+           tree_zscale = FALSE, tree_height = 30,  lit = TRUE,
            lat = unlist(circle_coords_lat), long = unlist(circle_coords_long), zscale=50) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the crown width ratio (compared to the height)
 render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            tree_zscale = FALSE, tree_height = 60, crown_width_ratio = 0.5,
@@ -138,7 +141,7 @@ render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            lat = unlist(circle_coords_lat), long = unlist(circle_coords_long), zscale=50) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the trunk height and width
 render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            tree_zscale = FALSE, tree_height = 40, crown_width_ratio = 2,
@@ -146,7 +149,7 @@ render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            lat = unlist(circle_coords_lat), long = unlist(circle_coords_long), zscale=50) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the tree type
 render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            tree_zscale = FALSE, tree_height = 30, 
@@ -154,7 +157,7 @@ render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
            lat = unlist(circle_coords_lat), long = unlist(circle_coords_long), zscale=50) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the crown color:
 render_camera(theta = 150,  phi = 38, zoom = 0.4, fov = 55)
 render_tree(extent = attr(montereybay,"extent"), heightmap = montereybay,
@@ -169,7 +172,7 @@ render_snapshot()
 run_example = length(find.package("lidR", quiet = TRUE)) > 0 && 
              length(find.package("sf", quiet = TRUE)) > 0 && 
              length(find.package("terra", quiet = TRUE)) > 0 &&
-             rayshader:::run_documentation()
+             run_documentation()
 if (run_example) {
 #Load the example data from the lidR package
 LASfile = system.file("extdata", "Topography.laz", package="lidR")

@@ -14,6 +14,10 @@
 #'overlay automatically.
 #'@param width Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
 #'@param height Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.
+#'@param resolution_multiply Default `1`. If passing in `heightmap` instead of width/height, amount to 
+#'increase the resolution of the overlay, which should make lines/polygons/text finer. 
+#'Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+#'in the final map.
 #'@param text_size Default `1`. Text size.
 #'@param point_size Default `0`, no points. Point size.
 #'@param color Default `black`. Color of the labels.
@@ -43,7 +47,7 @@
 #'@export
 #'@examples
 #'#Add the included `sf` object with roads to the montereybay dataset
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Create the water palette
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 #'bathy_hs = height_shade(montereybay, texture = water_palette)
@@ -64,7 +68,7 @@
 #'                                     seed=1))  %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#It's hard to read these values, so we'll add a white halo.
 #'bathy_hs %>% 
 #'  add_shadow(lamb_shade(montereybay,zscale=50),0.3) %>%
@@ -79,7 +83,7 @@
 #'                                     seed=1))  %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Plot the actual town locations, using the manual plotting interface instead of the `sf` object
 #'montereybay %>%
 #'  height_shade() %>%
@@ -94,7 +98,7 @@
 #'                                     seed=1))  %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Adding a softer blurred halo
 #'montereybay %>%
 #'  height_shade() %>%
@@ -109,7 +113,7 @@
 #'                                     seed=1))  %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Changing the seed changes the locations of the labels
 #'montereybay %>%
 #'  height_shade() %>%
@@ -125,7 +129,8 @@
 #'  plot_map()
 #'}
 generate_label_overlay = function(labels, extent, x=NULL, y=NULL, 
-                                  heightmap = NULL, width=NA, height=NA, text_size = 1,
+                                  heightmap = NULL, width=NA, height=NA, resolution_multiply = 1,
+                                  text_size = 1,
                                   color = "black", font = 1, pch = 16, 
                                   point_size = 1, point_color = NA, offset = c(0,0),
                                   data_label_column = NULL,
@@ -172,11 +177,14 @@ generate_label_overlay = function(labels, extent, x=NULL, y=NULL,
 
   extent = get_extent(extent)
   if(is.na(height)) {
-    height  = ncol(heightmap)
+    height = ncol(heightmap)
   }
   if(is.na(width)) {
     width  = nrow(heightmap)
   }
+  height = height * resolution_multiply
+  width = width * resolution_multiply
+  
   tempoverlay = tempfile(fileext = ".png")
   grDevices::png(filename = tempoverlay, width = width, height = height, units="px",bg = "transparent")
   graphics::par(mar = c(0,0,0,0))

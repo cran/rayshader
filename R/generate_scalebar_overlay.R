@@ -32,6 +32,10 @@
 #'RGB image array automatically.
 #'@param width Default `NA`. Width of the resulting image array. Default the same dimensions as height map.
 #'@param height Default `NA`. Width of the resulting image array. Default the same dimensions as height map.
+#'@param resolution_multiply Default `1`. If passing in `heightmap` instead of width/height, amount to 
+#'increase the resolution of the overlay, which should make lines/polygons/text finer. 
+#'Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+#'in the final map.
 #'@param color1 Default `black`. Primary color of the scale bar.
 #'@param color2 Default `white`. Secondary color of the scale bar.
 #'@param text_color Default `black`. Text color.
@@ -51,7 +55,7 @@
 #'@return Semi-transparent overlay with a scale bar.
 #'@export
 #'@examples
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Create the water palette
 #'water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 #'bathy_hs = height_shade(montereybay, texture = water_palette)
@@ -77,7 +81,7 @@
 #'                                       latlong=TRUE)) %>%
 #' plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the text color
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -86,7 +90,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the length
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -95,7 +99,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the thickness (default is length/20)
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -104,7 +108,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the text offset (given in multiples of thickness)
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -114,7 +118,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the primary and secondary colors, along with the border and tick color
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 30000,
@@ -125,7 +129,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Add a halo
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000,
@@ -134,7 +138,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-#'if(rayshader:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Change the orientation, position, text alignment, and flip the ticks to the other side
 #'base_map %>%
 #'  add_overlay(generate_scalebar_overlay(extent = mb_extent, length = 40000, x = 0.07,
@@ -144,7 +148,7 @@
 #'                                        latlong=TRUE)) %>%
 #'  plot_map()
 #'}
-##'if(rayshader:::run_documentation()) { 
+##'if(run_documentation()) { 
 #'#64373.8 meters in 40 miles
 #'#Create custom labels, change font and text size, remove the border/ticks, and change the color
 #'#Here, we specify a width and height to double the resolution of the image (for sharper text)
@@ -166,7 +170,7 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
                                      bearing=90, unit="m", flip_ticks = FALSE,
                                      labels = NA, text_size=1, decimals = 0, 
                                      text_offset = 1, adj = 0.5,
-                                     heightmap = NULL, width=NA, height=NA,
+                                     heightmap = NULL, width=NA, height=NA, resolution_multiply = 1,
                                      color1 = "white", color2 = "black", 
                                      text_color = "black", font = 1,
                                      border_color = "black", tick_color = "black", 
@@ -185,11 +189,14 @@ generate_scalebar_overlay = function(extent, length, x=0.05, y=0.05,
   halo_offset[2] = halo_offset[2] * ydiff
   
   if(is.na(height)) {
-    height  = ncol(heightmap)
+    height = ncol(heightmap)
   }
   if(is.na(width)) {
     width  = nrow(heightmap)
   }
+  height = height * resolution_multiply
+  width = width * resolution_multiply
+  
   if(all(!is.na(labels)) && length(labels) != 3) {
     stop("If specified, `labels` must be length-3 vector")
   }

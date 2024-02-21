@@ -10,6 +10,7 @@ generate_line_overlay(
   heightmap = NULL,
   width = NA,
   height = NA,
+  resolution_multiply = 1,
   color = "black",
   linewidth = 1,
   lty = 1,
@@ -32,6 +33,11 @@ overlay automatically.}
 
 \item{height}{Default `NA`. Width of the resulting overlay. Default the same dimensions as height map.}
 
+\item{resolution_multiply}{Default `1`. If passing in `heightmap` instead of width/height, amount to 
+increase the resolution of the overlay, which should make lines/polygons/text finer. 
+Should be combined with `add_overlay(rescale_original = TRUE)` to ensure those added details are captured
+in the final map.}
+
 \item{color}{Default `black`. Color of the lines.}
 
 \item{linewidth}{Default `1`. Line width.}
@@ -52,7 +58,7 @@ Calculates and returns an overlay of lines for the current height map.
 }
 \examples{
 #Add the included `sf` object with roads to the montereybay dataset
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 water_palette = colorRampPalette(c("darkblue", "dodgerblue", "lightblue"))(200)
 bathy_hs = height_shade(montereybay, texture = water_palette)
 montereybay \%>\% 
@@ -63,7 +69,7 @@ montereybay \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0.3) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Change the line width, color, and transparency
 montereybay \%>\%
  height_shade() \%>\%
@@ -74,7 +80,7 @@ montereybay \%>\%
  add_shadow(ray_shade(montereybay,zscale=50),0.3) \%>\%
  plot_map()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Manually specify the width and height to improve visual quality of the lines
 montereybay \%>\%
  height_shade() \%>\%

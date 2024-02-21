@@ -23,6 +23,11 @@ render_obj(
   scale = c(1, 1, 1),
   clear_previous = FALSE,
   baseshape = "rectangle",
+  lit = FALSE,
+  light_altitude = c(45, 30),
+  light_direction = c(315, 135),
+  light_intensity = 0.3,
+  light_relative = FALSE,
   rgl_tag = "",
   ...
 )
@@ -58,7 +63,7 @@ All points are assumed to be evenly spaced.}
 
 \item{color}{Default `black`. Color of the 3D model, if `load_material = FALSE`.}
 
-\item{offset}{Default `5`. Offset of the track from the surface, if `altitude = NULL`.}
+\item{offset}{Default `5`. Offset of the model from the surface, if `altitude = NULL`.}
 
 \item{obj_zscale}{Default `FALSE`. Whether to scale the size of the OBJ by zscale to have it match
 the size of the map. If zscale is very big, this will make the model very small.}
@@ -79,6 +84,17 @@ equal the length of `lat`/`long`).}
 
 \item{baseshape}{Default `rectangle`. Shape of the base. Options are `c("rectangle","circle","hex")`.}
 
+\item{lit}{Default `TRUE`. Whether to light the polygons.}
+
+\item{light_altitude}{Default `c(45, 60)`. Degree(s) from the horizon from which to light the polygons.}
+
+\item{light_direction}{Default `c(45, 60)`. Degree(s) from north from which to light the polygons.}
+
+\item{light_intensity}{Default `0.3`. Intensity of the specular highlight on the polygons.}
+
+\item{light_relative}{Default `FALSE`. Whether the light direction should be taken relative to the camera,
+or absolute.}
+
 \item{rgl_tag}{Default `""`. Tag to add to the rgl scene id, will be prefixed by `"obj"`}
 
 \item{...}{Additional arguments to pass to `rgl::triangles3d()`.}
@@ -93,7 +109,7 @@ If no latitudes or longitudes are passed in, the OBJ will be plotted in the coor
 in the proper location (but for ease of use, use `render_multipolygonz()` to plot this data directly).
 }
 \examples{
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Render the 3D map
 moss_landing_coord = c(36.806807, -121.793332)
 montereybay \%>\%
@@ -113,7 +129,7 @@ render_obj(flag_full_obj(), extent = attr(montereybay,"extent"), heightmap = mon
           zscale=50, color=rainbow(100), smooth = FALSE, clear_previous = TRUE) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Rotate the flag to follow the circle
 render_obj(flag_full_obj(), extent = attr(montereybay,"extent"), heightmap = montereybay,
           lat = unlist(circle_coords_lat), long = unlist(circle_coords_long),
@@ -122,7 +138,7 @@ render_obj(flag_full_obj(), extent = attr(montereybay,"extent"), heightmap = mon
           zscale=50, color=rainbow(100), smooth = FALSE, clear_previous = TRUE) 
 render_snapshot()
 }
-if(rayshader:::run_documentation()) {
+if(run_documentation()) {
 #Style the pole with a different color
 render_obj(flag_pole_obj(), extent = attr(montereybay,"extent"), heightmap = montereybay,
           lat = unlist(circle_coords_lat), long = unlist(circle_coords_long),
